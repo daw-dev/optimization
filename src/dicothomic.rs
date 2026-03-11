@@ -29,8 +29,8 @@ impl Dicothomic {
     }
 }
 
-impl Optimizer<1> for Dicothomic {
-    fn optimize<F: Function<1>>(self, func: &F, starting_guess: [f64; 1]) -> [f64; 1] {
+impl Optimizer<f64, f64> for Dicothomic {
+    fn optimize<F: Function<f64, f64>>(self, func: &F, starting_guess: f64) -> f64 {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -42,7 +42,7 @@ impl Optimizer<1> for Dicothomic {
 
         for _ in 0..self.iterations {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
-                points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute([x]))));
+                points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (
                 y1.total_cmp(&y2),
                 y2.total_cmp(&y3),
@@ -99,12 +99,18 @@ impl Optimizer<1> for Dicothomic {
                         (x5, Some(y5)),
                     ]
                 }
-                _ => {
-                    unreachable!("this function is not unimodal")
+                (Ordering::Greater, Ordering::Equal, Ordering::Less, Ordering::Less) => {
+                    return (x2 + x3) / 2.0;
+                }
+                (Ordering::Greater, Ordering::Greater, Ordering::Equal, Ordering::Less) => {
+                    return (x3 + x4) / 2.0;
+                }
+                t => {
+                    unreachable!("this function is not unimodal: {t:?}")
                 }
             }
         }
 
-        [points[2].0]
+        points[2].0
     }
 }

@@ -5,9 +5,9 @@ edition = "2024"
 
 [lib]
 
-[dependencies]
-plotters = "0.3.7"
-
 [[example]]
 name = "lab1"
 path = "labs/lab1/main.rs"
+
+[dev-dependencies]
+plotly = "0.14.1"

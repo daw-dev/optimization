@@ -3,44 +3,37 @@ pub struct Then<T, U> {
     second: U,
 }
 
-impl<const DIM: usize, T, U> Optimizer<DIM> for Then<T, U>
+impl<T, U, X, Y> Optimizer<X, Y> for Then<T, U>
 where
-    T: Optimizer<DIM>,
-    U: Optimizer<DIM>,
+    T: Optimizer<X, Y>,
+    U: Optimizer<X, Y>,
 {
-    fn optimize<F: Function<DIM>>(self, func: &F, starting_guess: [f64; DIM]) -> [f64; DIM] {
+    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: X) -> X {
         self.second
             .optimize(func, self.first.optimize(func, starting_guess))
     }
 }
 
-pub trait Function<const DIM: usize> {
-    fn compute(&self, point: [f64; DIM]) -> f64;
+pub trait Function<X, Y> {
+    fn compute(&self, point: X) -> Y;
 }
 
-impl<F> Function<1> for F
+impl<F, X, Y> Function<X, Y> for F
 where
-    F: Fn(f64) -> f64,
+    F: Fn(X) -> Y,
 {
-    fn compute(&self, point: [f64; 1]) -> f64 {
-        self(point[0])
+    fn compute(&self, point: X) -> Y {
+        self(point)
     }
 }
 
-// pub trait Continuous<const ORDER: usize>
-// where
-//     [(); ORDER]:,
-//     Self: Continuous<{ ORDER - 1 }>,
-// {
-//
-// }
+pub trait Optimizer<X, Y> {
+    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: X) -> X;
 
-pub trait Optimizer<const DIM: usize> {
-    fn optimize<F: Function<DIM>>(self, func: &F, starting_guess: [f64; DIM]) -> [f64; DIM];
-
-    fn then<U: Optimizer<DIM>>(self, other: U) -> Then<Self, U>
+    fn then<U, YPrime>(self, other: U) -> Then<Self, U>
     where
         Self: Sized,
+        U: Optimizer<X, Y>,
     {
         Then {
             first: self,
