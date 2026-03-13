@@ -1,11 +1,17 @@
 use optimization::{
-    dicothomic::{self, Dicothomic},
-    fibonacci::Fibonacci,
-    golden::{self, GoldenRatio},
     helpers::UniformSample,
+    linear::{
+        dicothomic::{self, Dicothomic},
+        fibonacci::Fibonacci,
+        golden::{self, GoldenRatio},
+        newton::Newton,
+    },
     optimizer::Optimizer,
 };
-use plotly::{Layout, Plot, Scatter, layout::{GridPattern, LayoutGrid}};
+use plotly::{
+    Layout, Plot, Scatter,
+    layout::{GridPattern, LayoutGrid},
+};
 
 fn main() {
     let func = |x| 8.0 * f64::exp(1.0 - x) + 7.0 * f64::ln(x);
@@ -54,8 +60,9 @@ fn main() {
     println!("{min:?}");
 
     let func = |x: f64| {
-        x.powi(4) - 3.0 * x.powi(2) + x
-        // + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
+        x.powi(4) - 3.0 * x.powi(2)
+            + x
+            + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
     };
 
     let x_sample = UniformSample::new(-1.0..3.0, 100);
@@ -68,12 +75,26 @@ fn main() {
     .name(r"$x^4-3x^2+x+0\cdot\sum_{i=0}^{rand(1, 1e7)})$");
     plot.add_trace(scatter);
 
-    let guess = Dicothomic::new(dicothomic::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
+    let guess =
+        Dicothomic::new(dicothomic::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
     println!("{guess:?}");
-    let guess = GoldenRatio::new(golden::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
+    let guess =
+        GoldenRatio::new(golden::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
     println!("{guess:?}");
     let guess = Fibonacci::<4>.optimize(&func, -1.0..3.0);
     println!("{guess:?}");
+
+    let func = |x: f64| x.powi(2) - 4.0 * x + 2.0;
+
+    let optimizer = Newton::new(10);
+    let guess = optimizer.clone().optimize(&func, 3.0);
+    println!("{guess}");
+    let guess = optimizer.clone().optimize(&func, 6.0);
+    println!("{guess}");
+    let guess = optimizer.clone().optimize(&func, 8.0);
+    println!("{guess}");
+    let guess = optimizer.clone().optimize(&func, -15.0);
+    println!("{guess}");
 
     plot.write_html("labs/lab1/plot.html");
 }
