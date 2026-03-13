@@ -1,10 +1,10 @@
 use std::{cmp::Ordering, ops::Range};
 
-use crate::optimizer::{Function, Optimizer};
+use crate::optimizer::{Optimizer};
+use crate::functions::Function;
 
-pub struct Fibonacci<const N: usize> {
-    interval: Range<f64>,
-}
+#[derive(Clone)]
+pub struct Fibonacci<const N: usize>;
 
 impl<const N: usize> Fibonacci<N> {
     pub const GAMMAS: [f64; N] = {
@@ -27,14 +27,10 @@ impl<const N: usize> Fibonacci<N> {
         }
         res
     };
-
-    pub fn new(interval: Range<f64>) -> Self {
-        Self { interval }
-    }
 }
 
-impl<const N: usize> Optimizer<f64, f64> for Fibonacci<N> {
-    fn optimize<F: Function<f64, f64>>(self, func: &F, starting_guess: f64) -> f64 {
+impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Fibonacci<N> {
+    fn optimize<F: Function<f64, f64>>(self, func: &F, starting_guess: Range<f64>) -> Result<Range<f64>, String> {
         fn find_points<const N: usize>(start: f64, end: f64, iteration: usize) -> [f64; 4] {
             let first = end - Fibonacci::<N>::GAMMAS[iteration] * (end - start);
             let second = start + Fibonacci::<N>::GAMMAS[iteration] * (end - start);
@@ -42,7 +38,7 @@ impl<const N: usize> Optimizer<f64, f64> for Fibonacci<N> {
         }
 
         let mut points =
-            find_points::<N>(self.interval.start, self.interval.end, 0).map(|x| (x, None));
+            find_points::<N>(starting_guess.start, starting_guess.end, 0).map(|x| (x, None));
 
         for i in 0..N {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4)] =
@@ -65,14 +61,13 @@ impl<const N: usize> Optimizer<f64, f64> for Fibonacci<N> {
                     points = [(x1, Some(y3)), (x2, None), (x3, None), (x4, Some(y4))]
                 }
                 (Ordering::Greater, Ordering::Equal, Ordering::Less) => {
-                    return (x2 + x3) / 2.0;
                 }
                 t => {
-                    unreachable!("this function is not unimodal: {t:?}")
+                    return Err(format!("this function is not unimodal: {t:?}"))
                 }
             }
         }
 
-        (points[1].0 + points[2].0) / 2.0
+        Ok(points[0].0..points[3].0)
     }
 }

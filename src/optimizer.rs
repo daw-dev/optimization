@@ -1,43 +1,65 @@
-pub struct Then<T, U> {
+use std::marker::PhantomData;
+
+use crate::functions::Function;
+
+#[derive(Debug, Clone)]
+pub struct Chain<T, U, IntermediateGuess> {
     first: T,
     second: U,
+    intermediate_guess: PhantomData<IntermediateGuess>,
 }
 
-impl<T, U, X, Y> Optimizer<X, Y> for Then<T, U>
+impl<T, U, X, Y, StartingGuess, IntermediateGuess, FinalGuess>
+    Optimizer<X, Y, StartingGuess, FinalGuess> for Chain<T, U, IntermediateGuess>
 where
-    T: Optimizer<X, Y>,
-    U: Optimizer<X, Y>,
+    T: Optimizer<X, Y, StartingGuess, IntermediateGuess>,
+    U: Optimizer<X, Y, IntermediateGuess, FinalGuess>,
 {
-    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: X) -> X {
+    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess {
         self.second
             .optimize(func, self.first.optimize(func, starting_guess))
     }
 }
 
-pub trait Function<X, Y> {
-    fn compute(&self, point: X) -> Y;
+pub struct Map<T, F, IntermediateGuess> {
+    optimizer: T,
+    mapper: F,
+    intermediate_guess: PhantomData<IntermediateGuess>,
 }
 
-impl<F, X, Y> Function<X, Y> for F
+impl<T, M, X, Y, StartingGuess, IntermediateGuess, FinalGuess>
+    Optimizer<X, Y, StartingGuess, FinalGuess> for Map<T, M, IntermediateGuess>
 where
-    F: Fn(X) -> Y,
+    T: Optimizer<X, Y, StartingGuess, IntermediateGuess>,
+    M: FnOnce(IntermediateGuess) -> FinalGuess,
 {
-    fn compute(&self, point: X) -> Y {
-        self(point)
+    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess {
+        (self.mapper)(self.optimizer.optimize(func, starting_guess))
     }
 }
 
-pub trait Optimizer<X, Y> {
-    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: X) -> X;
+pub trait Optimizer<X, Y, StartingGuess, FinalGuess = StartingGuess> {
+    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess;
 
-    fn then<U, YPrime>(self, other: U) -> Then<Self, U>
+    fn chain<U, OtherGuess>(self, other: U) -> Chain<Self, U, FinalGuess>
     where
         Self: Sized,
-        U: Optimizer<X, Y>,
     {
-        Then {
+        Chain {
             first: self,
             second: other,
+            intermediate_guess: PhantomData,
+        }
+    }
+
+    fn map<F, OtherGuess>(self, mapper: F) -> Map<Self, F, FinalGuess>
+    where
+        Self: Sized,
+    {
+        Map {
+            optimizer: self,
+            mapper,
+            intermediate_guess: PhantomData,
         }
     }
 }

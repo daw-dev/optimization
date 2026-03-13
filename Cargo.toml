@@ -9,5 +9,10 @@ edition = "2024"
 name = "lab1"
 path = "labs/lab1/main.rs"
 
+[[example]]
+name = "lab2"
+path = "labs/lab2/main.rs"
+
 [dev-dependencies]
 plotly = "0.14.1"
+rand = "0.10.0"

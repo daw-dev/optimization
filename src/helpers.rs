@@ -1,4 +1,6 @@
 use std::ops::Range;
+use crate::functions::Function;
+use crate::optimizer::Optimizer;
 
 #[derive(Debug, Clone)]
 pub struct UniformSample {
@@ -28,5 +30,19 @@ impl Iterator for UniformSample {
             self.current_point += 1;
             res
         })
+    }
+}
+
+pub struct Average;
+
+impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {
+    fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f64>) -> f64 {
+        (starting_guess.start + starting_guess.end) / 2.0
+    }
+}
+
+impl<X, Y> Optimizer<X, Y, Range<f32>, f32> for Average {
+    fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f32>) -> f32 {
+        (starting_guess.start + starting_guess.end) / 2.0
     }
 }

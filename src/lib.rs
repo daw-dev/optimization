@@ -3,3 +3,4 @@ pub mod dicothomic;
 pub mod golden;
 pub mod fibonacci;
 pub mod helpers;
+pub mod functions;

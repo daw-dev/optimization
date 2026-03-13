@@ -1,36 +1,36 @@
+use crate::optimizer::{Optimizer};
+use crate::functions::Function;
 use std::{cmp::Ordering, ops::Range};
 
-use crate::optimizer::{Function, Optimizer};
+#[derive(Clone)]
+pub enum StoppingCondition {
+    Precision(f64),
+    Iterations(usize),
+}
 
+#[derive(Clone)]
 pub struct Dicothomic {
-    iterations: usize,
-    interval: Range<f64>,
+    stopping_condition: StoppingCondition,
 }
 
 impl Dicothomic {
-    pub fn with_iterations(iterations: usize, starting_interval: Range<f64>) -> Self {
-        Self {
-            iterations,
-            interval: starting_interval,
-        }
-    }
-
-    pub fn iterations_from_precision(precision: f64, starting_interval: Range<f64>) -> usize {
+    pub fn iterations_from_precision(precision: f64, starting_interval: &Range<f64>) -> usize {
         ((starting_interval.end - starting_interval.start) / precision)
             .log2()
             .ceil() as usize
     }
 
-    pub fn with_precision(precision: f64, starting_interval: Range<f64>) -> Self {
-        Self {
-            iterations: Dicothomic::iterations_from_precision(precision, starting_interval.clone()),
-            interval: starting_interval,
-        }
+    pub fn new(stopping_condition: StoppingCondition) -> Self {
+        Self { stopping_condition }
     }
 }
 
-impl Optimizer<f64, f64> for Dicothomic {
-    fn optimize<F: Function<f64, f64>>(self, func: &F, starting_guess: f64) -> f64 {
+impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic {
+    fn optimize<F: Function<f64, f64>>(
+        self,
+        func: &F,
+        starting_guess: Range<f64>,
+    ) -> Result<Range<f64>, String> {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -38,9 +38,16 @@ impl Optimizer<f64, f64> for Dicothomic {
             [start, left_quarter, mid, right_quarter, end]
         }
 
-        let mut points = find_points(self.interval.start, self.interval.end).map(|x| (x, None));
+        let iterations = match self.stopping_condition {
+            StoppingCondition::Precision(prec) => {
+                Dicothomic::iterations_from_precision(prec, &starting_guess)
+            }
+            StoppingCondition::Iterations(iters) => iters,
+        };
 
-        for _ in 0..self.iterations {
+        let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
+
+        for _ in 0..iterations {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
                 points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (
@@ -100,17 +107,17 @@ impl Optimizer<f64, f64> for Dicothomic {
                     ]
                 }
                 (Ordering::Greater, Ordering::Equal, Ordering::Less, Ordering::Less) => {
-                    return (x2 + x3) / 2.0;
+                    return Ok(x2..x3);
                 }
                 (Ordering::Greater, Ordering::Greater, Ordering::Equal, Ordering::Less) => {
-                    return (x3 + x4) / 2.0;
+                    return Ok(x3..x4);
                 }
                 t => {
-                    unreachable!("this function is not unimodal: {t:?}")
+                    return Err(format!("this function is not unimodal: {t:?}"));
                 }
             }
         }
 
-        points[2].0
+        Ok(points[0].0..points[4].0)
     }
 }
