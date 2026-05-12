@@ -5,6 +5,12 @@ edition = "2024"
 
 [lib]
 
+[dependencies]
+rand = "0.10.0"
+
+[dev-dependencies]
+plotly = "0.14.1"
+
 [[example]]
 name = "lab1"
 path = "labs/lab1/main.rs"
@@ -13,6 +19,7 @@ path = "labs/lab1/main.rs"
 name = "lab2"
 path = "labs/lab2/main.rs"
 
-[dev-dependencies]
-plotly = "0.14.1"
-rand = "0.10.0"
+[[example]]
+name = "lab3"
+description = "prova"
+path = "labs/lab3/main.rs"

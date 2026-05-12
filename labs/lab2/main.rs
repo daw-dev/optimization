@@ -20,5 +20,8 @@ fn main() {
     .x(sample_x1.collect())
     .y(sample_x2.collect());
     plot.add_trace(scatter);
+
+    
+
     plot.write_html("labs/lab2/plot.html");
 }
