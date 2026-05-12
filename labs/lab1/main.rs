@@ -1,11 +1,8 @@
+use std::ops::Range;
+
 use optimization::{
-    helpers::UniformSample,
-    linear::{
-        dicothomic::{self, Dicothomic},
-        fibonacci::Fibonacci,
-        golden::{self, GoldenRatio},
-        newton::Newton,
-    },
+    helpers::{Average, Iterations, Precision, UniformSample},
+    linear::{dicothomic::Dicothomic, fibonacci::Fibonacci, golden::GoldenRatio, newton::Newton},
     optimizer::Optimizer,
 };
 use plotly::{
@@ -35,15 +32,15 @@ fn main() {
     .name(r"$8 \cdot e^{1 - x} + 7 \cdot \ln(x)$");
     plot.add_trace(scatter);
 
-    let iterations = Dicothomic::iterations_from_precision(0.23, &(1.0..2.0));
+    let iterations = Dicothomic::<()>::iterations_from_precision(0.23, &(1.0..2.0));
     println!("{iterations} iterations needed");
-    let optimizer = Dicothomic::new(dicothomic::StoppingCondition::Iterations(iterations));
+    let optimizer = Dicothomic::new(Iterations(iterations));
     let min = optimizer.optimize(&func, 1.0..2.0);
     println!("{min:?}");
 
-    let iterations = GoldenRatio::iterations_from_precision(0.23, &(1.0..2.0));
+    let iterations = GoldenRatio::<()>::iterations_from_precision(0.23, &(1.0..2.0));
     println!("{iterations} iterations needed");
-    let optimizer = GoldenRatio::new(golden::StoppingCondition::Iterations(iterations));
+    let optimizer = GoldenRatio::new(Iterations(iterations));
     let min = optimizer.optimize(&func, 1.0..2.0);
     println!("{min:?}");
 
@@ -60,9 +57,8 @@ fn main() {
     println!("{min:?}");
 
     let func = |x: f64| {
-        x.powi(4) - 3.0 * x.powi(2)
-            + x
-            + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
+        x.powi(4) - 3.0 * x.powi(2) + x
+        // + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
     };
 
     let x_sample = UniformSample::new(-1.0..3.0, 100);
@@ -75,18 +71,16 @@ fn main() {
     .name(r"$x^4-3x^2+x+0\cdot\sum_{i=0}^{rand(1, 1e7)})$");
     plot.add_trace(scatter);
 
-    let guess =
-        Dicothomic::new(dicothomic::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
+    let guess: Result<Range<f64>, String> = Dicothomic::new(Precision(0.23)).optimize(&func, -1.0..3.0);
     println!("{guess:?}");
-    let guess =
-        GoldenRatio::new(golden::StoppingCondition::Precision(0.23)).optimize(&func, -1.0..3.0);
+    let guess = GoldenRatio::new(Precision(0.23)).optimize(&func, -1.0..3.0);
     println!("{guess:?}");
     let guess = Fibonacci::<4>.optimize(&func, -1.0..3.0);
     println!("{guess:?}");
 
     let func = |x: f64| x.powi(2) - 4.0 * x + 2.0;
 
-    let optimizer = Newton::new(10);
+    let optimizer = Newton::new(Precision(1e-5), 0.001);
     let guess = optimizer.clone().optimize(&func, 3.0);
     println!("{guess}");
     let guess = optimizer.clone().optimize(&func, 6.0);
@@ -95,6 +89,22 @@ fn main() {
     println!("{guess}");
     let guess = optimizer.clone().optimize(&func, -15.0);
     println!("{guess}");
+
+    let func = |x: f64| x.atan().powi(2);
+
+    let optimizer = Dicothomic::new(Precision(1e-5));
+    let guess = optimizer.optimize(&func, 0.0..0.5);
+    println!("{guess:?}");
+    let optimizer = Newton::new(Precision(1e-5), 0.001);
+    let guess = optimizer.optimize(&func, 0.25);
+    println!("{guess:?}");
+
+    let optimizer = Dicothomic::new(Precision(1e-5));
+    let guess = optimizer.optimize(&func, 0.0..3.0);
+    println!("{guess:?}");
+    let optimizer = Newton::new(Precision(1e-5), 0.001);
+    let guess = optimizer.optimize(&func, 1.5);
+    println!("{guess:?}");
 
     plot.write_html("labs/lab1/plot.html");
 }
