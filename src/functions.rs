@@ -42,11 +42,30 @@ where
     }
 }
 
-pub trait Gradient<const N: usize, X>: Function<[X; N], X> {
+pub trait Gradient<const N: usize, X> {
     fn gradient(&self, difference: X) -> [Box<dyn Function<[X; N], X> + '_>; N];
 }
 
-impl<const N: usize, F> Gradient<N, f64> for F
+// impl<const N: usize, F> Gradient<N, f64> for F
+// where
+//     F: Function<[f64; N], f64>,
+// {
+//     fn gradient(&self, difference: f64) -> [Box<dyn Function<[f64; N], f64> + '_>; N] {
+//         array::from_fn(|i| {
+//             Box::new(move |point: [f64; N]| -> f64 {
+//                 (|x: f64| {
+//                     let mut point = point.clone();
+//                     point[i] = x;
+//                     self.compute(point)
+//                 })
+//                 .derivative(difference)
+//                 .compute(point[i])
+//             }) as Box<dyn Function<[f64; N], f64> + '_>
+//         })
+//     }
+// }
+
+impl<const N: usize, F> Gradient<N, f64> for &F
 where
     F: Function<[f64; N], f64>,
 {

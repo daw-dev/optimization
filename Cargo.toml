@@ -21,5 +21,4 @@ path = "labs/lab2/main.rs"
 
 [[example]]
 name = "lab3"
-description = "prova"
 path = "labs/lab3/main.rs"

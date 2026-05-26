@@ -1,7 +1,6 @@
 use std::{
     array,
     fmt::Display,
-    iter::Sum,
     ops::{Add, AddAssign, Mul, MulAssign},
 };
 

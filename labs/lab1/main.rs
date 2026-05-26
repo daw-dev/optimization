@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use optimization::{
-    helpers::{Average, Iterations, Precision, UniformSample},
+    helpers::{Iterations, Precision, UniformSample},
     linear::{dicothomic::Dicothomic, fibonacci::Fibonacci, golden::GoldenRatio, newton::Newton},
     optimizer::Optimizer,
 };
@@ -58,7 +58,7 @@ fn main() {
 
     let func = |x: f64| {
         x.powi(4) - 3.0 * x.powi(2) + x
-        // + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
+        + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
     };
 
     let x_sample = UniformSample::new(-1.0..3.0, 100);

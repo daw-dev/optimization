@@ -41,7 +41,7 @@ where
 pub trait Optimizer<X, Y, StartingGuess, FinalGuess = StartingGuess> {
     fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess;
 
-    fn chain<U, OtherGuess>(self, other: U) -> Chain<Self, U, FinalGuess>
+    fn chain<U>(self, other: U) -> Chain<Self, U, FinalGuess>
     where
         Self: Sized,
     {
@@ -52,7 +52,7 @@ pub trait Optimizer<X, Y, StartingGuess, FinalGuess = StartingGuess> {
         }
     }
 
-    fn map<F, OtherGuess>(self, mapper: F) -> Map<Self, F, FinalGuess>
+    fn map<F>(self, mapper: F) -> Map<Self, F, FinalGuess>
     where
         Self: Sized,
     {
