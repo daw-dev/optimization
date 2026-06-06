@@ -39,6 +39,7 @@ impl Iterator for UniformSample {
     }
 }
 
+#[derive(Clone)]
 pub struct Average;
 
 impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {

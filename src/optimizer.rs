@@ -21,6 +21,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct Map<T, F, IntermediateGuess> {
     optimizer: T,
     mapper: F,
