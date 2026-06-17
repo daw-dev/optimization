@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::Range};
 
-use crate::optimizer::{Optimizer};
 use crate::functions::Function;
+use crate::optimizer::Optimizer;
 
 #[derive(Clone)]
 pub struct Fibonacci<const N: usize>;
@@ -30,7 +30,11 @@ impl<const N: usize> Fibonacci<N> {
 }
 
 impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Fibonacci<N> {
-    fn optimize<F: Function<f64, f64>>(self, func: &F, starting_guess: Range<f64>) -> Result<Range<f64>, String> {
+    fn optimize<F: Function<f64, f64>>(
+        self,
+        func: &F,
+        starting_guess: Range<f64>,
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points<const N: usize>(start: f64, end: f64, iteration: usize) -> [f64; 4] {
             let first = end - Fibonacci::<N>::GAMMAS[iteration] * (end - start);
             let second = start + Fibonacci::<N>::GAMMAS[iteration] * (end - start);
@@ -40,7 +44,7 @@ impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>>
         let mut points =
             find_points::<N>(starting_guess.start, starting_guess.end, 0).map(|x| (x, None));
 
-        for i in 0..N {
+        (0..N).map(move |i| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4)] =
                 points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (y1.total_cmp(&y2), y2.total_cmp(&y3), y3.total_cmp(&y4)) {
@@ -60,14 +64,10 @@ impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>>
                     let [x1, x2, x3, x4] = find_points::<N>(x3, x4, i + 1);
                     points = [(x1, Some(y3)), (x2, None), (x3, None), (x4, Some(y4))]
                 }
-                (Ordering::Greater, Ordering::Equal, Ordering::Less) => {
-                }
-                t => {
-                    return Err(format!("this function is not unimodal: {t:?}"))
-                }
+                (Ordering::Greater, Ordering::Equal, Ordering::Less) => {}
+                t => return Err(format!("this function is not unimodal: {t:?}")),
             }
-        }
-
-        Ok(points[0].0..points[3].0)
+            Ok(points[0].0..points[3].0)
+        })
     }
 }

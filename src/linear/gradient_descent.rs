@@ -1,9 +1,9 @@
-use std::{array, ops::Range};
 use crate::{
     functions::{Function, Gradient},
     helpers::{Iterations, Precision},
     optimizer::Optimizer,
 };
+use std::{array, ops::Range};
 
 pub struct FixedStepGradientDescent<S> {
     gradient_precision: f64,
@@ -21,65 +21,49 @@ impl<S> FixedStepGradientDescent<S> {
     }
 }
 
-impl<const N: usize> Optimizer<[f64; N], f64, [f64; N]> for FixedStepGradientDescent<Precision> {
-    fn optimize<F: crate::functions::Function<[f64; N], f64>>(
-        self,
-        func: &F,
-        starting_guess: [f64; N],
-    ) -> [f64; N] {
-        Optimizer::<_, _, _, Vec<[f64; N]>>::optimize(self, func, starting_guess)
-            .pop()
-            .unwrap()
-    }
-}
-
-impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], Vec<[f64; N]>>
+impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]>
     for FixedStepGradientDescent<Precision>
 {
     fn optimize<F: crate::functions::Function<[f64; N], f64>>(
         self,
         func: &F,
         starting_guess: [f64; N],
-    ) -> Vec<[f64; N]> {
+    ) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
-        let mut guesses = vec![starting_guess];
-        loop {
+        std::iter::repeat_with(move || {
             let gradient = func.gradient(self.gradient_precision);
             let computed = gradient.compute(guess);
             let norm: f64 = computed.iter().map(|x| x * x).sum();
             if norm < self.stopping_criterion.0.powi(2) {
-                break guesses;
+                return None;
             }
             for i in 0..N {
                 guess[i] = guess[i] - self.step * computed[i];
             }
-            guesses.push(guess);
-        }
+            Some(guess)
+        })
+        .flatten()
     }
 }
 
-impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], Vec<[f64; N]>>
+impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]>
     for FixedStepGradientDescent<Iterations>
 {
     fn optimize<F: crate::functions::Function<[f64; N], f64>>(
         self,
         func: &F,
         starting_guess: [f64; N],
-    ) -> Vec<[f64; N]> {
+    ) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
-        let mut guesses = Vec::with_capacity(self.stopping_criterion.0);
-        guesses.push(starting_guess);
 
-        for _ in 1..self.stopping_criterion.0 {
+        (1..self.stopping_criterion.0).map(move |_| {
             let gradient = func.gradient(self.gradient_precision);
             let computed = gradient.compute(guess);
             for i in 0..N {
                 guess[i] = guess[i] - self.step * computed[i];
             }
-            guesses.push(guess);
-        }
-
-        guesses
+            guess
+        })
     }
 }
 
@@ -106,8 +90,7 @@ impl<LS, S> SteepestGradientDescent<LS, S> {
     }
 }
 
-impl<const N: usize, LS>
-    Optimizer<[f64; N], f64, [f64; N], Result<Vec<[f64; N]>, (String, Vec<[f64; N]>)>>
+impl<const N: usize, LS> Optimizer<[f64; N], f64, [f64; N], Result<[f64; N], String>>
     for SteepestGradientDescent<LS, Precision>
 where
     LS: Optimizer<f64, f64, Range<f64>, Result<f64, String>> + Clone,
@@ -116,15 +99,14 @@ where
         self,
         func: &F,
         starting_guess: [f64; N],
-    ) -> Result<Vec<[f64; N]>, (String, Vec<[f64; N]>)> {
+    ) -> impl Iterator<Item = Result<[f64; N], String>> {
         let mut guess = starting_guess;
-        let mut guesses = vec![starting_guess];
         let gradient = func.gradient(self.gradient_precision);
-        loop {
+        std::iter::repeat_with(move || {
             let computed = gradient.compute(guess);
             let norm: f64 = computed.iter().map(|x| x * x).sum();
             if norm < self.stopping_criterion.0.powi(2) {
-                break Ok(guesses);
+                return None;
             }
             let line_search_func =
                 |step: f64| func.compute(array::from_fn(|i| guess[i] - step * computed[i]));
@@ -132,14 +114,17 @@ where
                 .line_search
                 .clone()
                 .optimize(&line_search_func, self.line_search_starting_guess.clone())
+                .last()
+                .unwrap()
             {
                 Ok(step) => step,
-                Err(reason) => return Err((reason, guesses)),
+                Err(reason) => return Some(Err(reason)),
             };
             for i in 0..N {
                 guess[i] = guess[i] - step * computed[i];
             }
-            guesses.push(guess);
-        }
+            Some(Ok(guess))
+        })
+        .flatten()
     }
 }

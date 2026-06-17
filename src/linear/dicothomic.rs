@@ -1,6 +1,6 @@
-use crate::helpers::{Iterations, Precision};
-use crate::optimizer::{Optimizer};
 use crate::functions::Function;
+use crate::helpers::{Iterations, Precision};
+use crate::optimizer::Optimizer;
 use std::{cmp::Ordering, ops::Range};
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
         self,
         func: &F,
         starting_guess: Range<f64>,
-    ) -> Result<Range<f64>, String> {
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -33,11 +33,9 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
             [start, left_quarter, mid, right_quarter, end]
         }
 
-        let iterations = self.stopping_condition.0;
-
         let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
 
-        for _ in 0..iterations {
+        (0..self.stopping_condition.0).map(move |_| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
                 points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (
@@ -106,9 +104,8 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
                     return Err(format!("this function is not unimodal: {t:?}"));
                 }
             }
-        }
-
-        Ok(points[0].0..points[4].0)
+            Ok(points[0].0..points[4].0)
+        })
     }
 }
 
@@ -117,7 +114,7 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
         self,
         func: &F,
         starting_guess: Range<f64>,
-    ) -> Result<Range<f64>, String> {
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -125,11 +122,12 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
             [start, left_quarter, mid, right_quarter, end]
         }
 
-        let iterations = Self::iterations_from_precision(self.stopping_condition.0, &starting_guess);
+        let iterations =
+            Self::iterations_from_precision(self.stopping_condition.0, &starting_guess);
 
         let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
 
-        for _ in 0..iterations {
+        (0..iterations).map(move |_| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
                 points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (
@@ -198,8 +196,7 @@ impl Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Dicothomic<
                     return Err(format!("this function is not unimodal: {t:?}"));
                 }
             }
-        }
-
-        Ok(points[0].0..points[4].0)
+            Ok(points[0].0..points[4].0)
+        })
     }
 }

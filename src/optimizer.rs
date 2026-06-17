@@ -15,32 +15,24 @@ where
     T: Optimizer<X, Y, StartingGuess, IntermediateGuess>,
     U: Optimizer<X, Y, IntermediateGuess, FinalGuess>,
 {
-    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess {
-        self.second
-            .optimize(func, self.first.optimize(func, starting_guess))
-    }
-}
-
-#[derive(Clone)]
-pub struct Map<T, F, IntermediateGuess> {
-    optimizer: T,
-    mapper: F,
-    intermediate_guess: PhantomData<IntermediateGuess>,
-}
-
-impl<T, M, X, Y, StartingGuess, IntermediateGuess, FinalGuess>
-    Optimizer<X, Y, StartingGuess, FinalGuess> for Map<T, M, IntermediateGuess>
-where
-    T: Optimizer<X, Y, StartingGuess, IntermediateGuess>,
-    M: FnOnce(IntermediateGuess) -> FinalGuess,
-{
-    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess {
-        (self.mapper)(self.optimizer.optimize(func, starting_guess))
+    fn optimize<F: Function<X, Y>>(
+        self,
+        func: &F,
+        starting_guess: StartingGuess,
+    ) -> impl Iterator<Item = FinalGuess> {
+        self.second.optimize(
+            func,
+            self.first.optimize(func, starting_guess).last().unwrap(),
+        )
     }
 }
 
 pub trait Optimizer<X, Y, StartingGuess, FinalGuess = StartingGuess> {
-    fn optimize<F: Function<X, Y>>(self, func: &F, starting_guess: StartingGuess) -> FinalGuess;
+    fn optimize<F: Function<X, Y>>(
+        self,
+        func: &F,
+        starting_guess: StartingGuess,
+    ) -> impl Iterator<Item = FinalGuess>;
 
     fn chain<U>(self, other: U) -> Chain<Self, U, FinalGuess>
     where
@@ -49,17 +41,6 @@ pub trait Optimizer<X, Y, StartingGuess, FinalGuess = StartingGuess> {
         Chain {
             first: self,
             second: other,
-            intermediate_guess: PhantomData,
-        }
-    }
-
-    fn map<F>(self, mapper: F) -> Map<Self, F, FinalGuess>
-    where
-        Self: Sized,
-    {
-        Map {
-            optimizer: self,
-            mapper,
             intermediate_guess: PhantomData,
         }
     }

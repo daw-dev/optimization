@@ -39,27 +39,27 @@ impl Iterator for UniformSample {
     }
 }
 
-#[derive(Clone)]
-pub struct Average;
-
-impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {
-    fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f64>) -> f64 {
-        (starting_guess.start + starting_guess.end) / 2.0
-    }
-}
-
-impl<X, Y, E> Optimizer<X, Y, Result<Range<f64>, E>, Result<f64, E>> for Average {
-    fn optimize<F: Function<X, Y>>(
-        self,
-        _func: &F,
-        starting_guess: Result<Range<f64>, E>,
-    ) -> Result<f64, E> {
-        starting_guess.map(|starting_guess| (starting_guess.start + starting_guess.end) / 2.0)
-    }
-}
-
-impl<X, Y> Optimizer<X, Y, Range<f32>, f32> for Average {
-    fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f32>) -> f32 {
-        (starting_guess.start + starting_guess.end) / 2.0
-    }
-}
+// #[derive(Clone)]
+// pub struct Average;
+//
+// impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {
+//     fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f64>) -> f64 {
+//         (starting_guess.start + starting_guess.end) / 2.0
+//     }
+// }
+//
+// impl<X, Y, E> Optimizer<X, Y, Result<Range<f64>, E>, Result<f64, E>> for Average {
+//     fn optimize<F: Function<X, Y>>(
+//         self,
+//         _func: &F,
+//         starting_guess: Result<Range<f64>, E>,
+//     ) -> Result<f64, E> {
+//         starting_guess.map(|starting_guess| (starting_guess.start + starting_guess.end) / 2.0)
+//     }
+// }
+//
+// impl<X, Y> Optimizer<X, Y, Range<f32>, f32> for Average {
+//     fn optimize<F: Function<X, Y>>(self, _func: &F, starting_guess: Range<f32>) -> f32 {
+//         (starting_guess.start + starting_guess.end) / 2.0
+//     }
+// }
