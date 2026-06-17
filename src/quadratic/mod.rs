@@ -5,6 +5,7 @@ use std::{
 };
 
 pub mod conjugate;
+pub mod newton_raphson;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix<const N: usize, const M: usize, T>(pub [[T; M]; N]);
@@ -99,12 +100,20 @@ impl<const N: usize> SquareMatrix<N, f64> {
 }
 
 impl<const N: usize, T> Column<N, T> {
+    pub fn new_column(col: [T; N]) -> Self {
+        Self(col.map(|v| [v]))
+    }
+
     pub fn into_column(self) -> [T; N] {
         self.0.map(|[v]| v)
     }
 }
 
 impl<const M: usize, T> Row<M, T> {
+    pub fn new_row(col: [T; M]) -> Self {
+        Self([col])
+    }
+
     pub fn into_row(self) -> [T; M] {
         let [vec] = self.0;
         vec
@@ -112,6 +121,10 @@ impl<const M: usize, T> Row<M, T> {
 }
 
 impl<T> Value<T> {
+    pub fn new_value(val: T) -> Self {
+        Self([[val]])
+    }
+
     pub fn into_value(self) -> T {
         let [[val]] = self.0;
         val
@@ -219,24 +232,19 @@ where
     }
 }
 
-impl<'a, 'b, const A: usize, const B: usize, const C: usize, T, U, V> Mul<&'b Matrix<B, C, U>>
-    for &'a Matrix<A, B, T>
+impl<const N: usize, const M: usize, T, U> MulAssign<Matrix<N, M, U>> for Matrix<N, M, T>
 where
-    &'a T: Mul<&'b U, Output = V>,
-    V: Add<V, Output = V>,
+    T: MulAssign<U>,
 {
-    type Output = Matrix<A, C, V>;
-
-    fn mul(self, rhs: &'b Matrix<B, C, U>) -> Self::Output {
-        Matrix(array::from_fn(|i| {
-            array::from_fn(|j| {
-                let mut acc = &self.0[i][0] * &rhs.0[0][j];
-                for k in 1..B {
-                    acc = acc + (&self.0[i][k] * &rhs.0[k][j]);
-                }
-                acc
-            })
-        }))
+    fn mul_assign(&mut self, rhs: Matrix<N, M, U>) {
+        self.0
+            .iter_mut()
+            .zip(rhs.0.into_iter())
+            .for_each(|(dst, src)| {
+                dst.iter_mut().zip(src.into_iter()).for_each(|(dst, src)| {
+                    *dst *= src;
+                })
+            });
     }
 }
 
