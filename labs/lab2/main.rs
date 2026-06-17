@@ -1,11 +1,11 @@
 use optimization::{
     functions::Function,
-    helpers::{Average, Precision, UniformSample},
+    helpers::{Precision, UniformSample},
     linear::{
         dicothomic::Dicothomic,
         gradient_descent::{FixedStepGradientDescent, SteepestGradientDescent},
     },
-    optimizer::Optimizer,
+    optimizer::{OptimizationResult, Optimizer, TryOptimizer},
 };
 use plotly::{Layout, Plot, Scatter3D, Surface, color::NamedColor, common::Marker};
 
@@ -34,7 +34,10 @@ fn main() {
 
     let optimizer = FixedStepGradientDescent::new(0.001, 0.1, Precision(1e-4));
 
-    let guesses: Vec<[f64; 2]> = optimizer.optimize(&func, [4.0, 8.0]);
+    let mut guesses = Vec::new();
+    for guess in optimizer.optimize(&func, [4.0, 8.0]).guesses() {
+        guesses.push(guess);
+    }
 
     println!(
         "final guess is {:.5?} in {} steps",
@@ -57,27 +60,33 @@ fn main() {
 
     let optimizer = SteepestGradientDescent::new(
         0.001,
-        Dicothomic::new(Precision(1e-3)).chain(Average),
+        Dicothomic::new(Precision(1e-3)),
         0.0..2.0,
         Precision(1e-4),
     );
 
-    let result = optimizer.optimize(&func, [4.0, 8.0]);
+    let result = optimizer.try_optimize(&func, [4.0, 8.0]);
 
-    let guesses = match result {
-        Ok(guesses) => {
-            println!(
-                "final guess is {:.5?} in {} steps",
-                guesses.last().unwrap(),
-                guesses.len()
-            );
-            guesses
+    let mut guesses = Vec::new();
+    let mut line_search_error = None;
+    for guess in result.guesses() {
+        match guess {
+            Ok(guess) => guesses.push(guess),
+            Err(reason) => {
+                line_search_error = Some(reason);
+                break;
+            }
         }
-        Err((reason, guesses)) => {
-            eprintln!("couldn't optimize for the following reason: {reason}");
-            guesses
-        }
-    };
+    }
+    if let Some(reason) = line_search_error {
+        eprintln!("couldn't optimize for the following reason: {reason}");
+    } else {
+        println!(
+            "final guess is {:.5?} in {} steps",
+            guesses.last().unwrap(),
+            guesses.len()
+        );
+    }
 
     let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
 
@@ -121,7 +130,10 @@ fn main() {
 
     let optimizer = FixedStepGradientDescent::new(0.001, 0.001, Precision(1e-4));
 
-    let guesses: Vec<[f64; 2]> = optimizer.optimize(&func, [6.0, 5.0]);
+    let mut guesses = Vec::new();
+    for guess in optimizer.optimize(&func, [6.0, 5.0]).guesses() {
+        guesses.push(guess);
+    }
 
     println!(
         "final guess is {:.5?} in {} steps",
@@ -144,30 +156,33 @@ fn main() {
 
     let optimizer = SteepestGradientDescent::new(
         0.001,
-        Dicothomic::new(Precision(1e-3)).chain(Average),
+        Dicothomic::new(Precision(1e-3)),
         0.0..1e-2,
         Precision(1e-4),
     );
 
-    let result = optimizer.optimize(&func, [6.0, 5.0]);
+    let result = optimizer.try_optimize(&func, [6.0, 5.0]);
 
-    let guesses = match result {
-        Ok(guesses) => {
-            println!(
-                "final guess is {:.5?} in {} steps",
-                guesses.last().unwrap(),
-                guesses.len()
-            );
-            guesses
+    let mut guesses = Vec::new();
+    let mut line_search_error = None;
+    for guess in result.guesses() {
+        match guess {
+            Ok(guess) => guesses.push(guess),
+            Err(reason) => {
+                line_search_error = Some(reason);
+                break;
+            }
         }
-        Err((reason, guesses)) => {
-            eprintln!(
-                "couldn't optimize after {} iterations for the following reason: {reason}",
-                guesses.len()
-            );
-            guesses
-        }
-    };
+    }
+    if let Some(reason) = line_search_error {
+        eprintln!("couldn't optimize for the following reason: {reason}");
+    } else {
+        println!(
+            "final guess is {:.5?} in {} steps",
+            guesses.last().unwrap(),
+            guesses.len()
+        );
+    }
 
     let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
 
@@ -211,7 +226,10 @@ fn main() {
 
         let optimizer = FixedStepGradientDescent::new(0.001, step, Precision(1e-4));
 
-        let guesses: Vec<[f64; 2]> = optimizer.optimize(&func, [-1.8, 2.0]);
+        let mut guesses = Vec::new();
+        for guess in optimizer.optimize(&func, [-1.8, 2.0]).guesses() {
+            guesses.push(guess);
+        }
 
         println!(
             "final guess is {:.5?} in {} steps",

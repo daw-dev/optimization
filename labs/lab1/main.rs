@@ -1,9 +1,7 @@
-use std::ops::Range;
-
 use optimization::{
     helpers::{Iterations, Precision, UniformSample},
     linear::{dicothomic::Dicothomic, fibonacci::Fibonacci, golden::GoldenRatio, newton::Newton},
-    optimizer::Optimizer,
+    optimizer::{OptimizationResult, Optimizer, TryOptimizationResult, TryOptimizer},
 };
 use plotly::{
     Layout, Plot, Scatter,
@@ -35,13 +33,13 @@ fn main() {
     let iterations = Dicothomic::<()>::iterations_from_precision(0.23, &(1.0..2.0));
     println!("{iterations} iterations needed");
     let optimizer = Dicothomic::new(Iterations(iterations));
-    let min = optimizer.optimize(&func, 1.0..2.0).last().unwrap();
+    let min = optimizer.try_optimize(&func, 1.0..2.0).guess();
     println!("{min:?}");
 
     let iterations = GoldenRatio::<()>::iterations_from_precision(0.23, &(1.0..2.0));
     println!("{iterations} iterations needed");
     let optimizer = GoldenRatio::new(Iterations(iterations));
-    let min = optimizer.optimize(&func, 1.0..2.0).last().unwrap();
+    let min = optimizer.try_optimize(&func, 1.0..2.0).guess();
     println!("{min:?}");
 
     const N: usize = 4;
@@ -53,13 +51,13 @@ fn main() {
     );
     println!("gammas: {:?}", Fibonacci::<N>::GAMMAS);
     let optimizer = Fibonacci::<N>;
-    let min = optimizer.optimize(&func, 1.0..2.0).last().unwrap();
+    let min = optimizer.try_optimize(&func, 1.0..2.0).guess();
     println!("{min:?}");
 
     let func = |x: f64| {
         x.powi(4) - 3.0 * x.powi(2)
             + x
-            + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
+            // + 0.0 * ((0..rand::random_range(1..10000000)).sum::<usize>() as f64)
     };
 
     let x_sample = UniformSample::new(-1.0..3.0, 100);
@@ -72,45 +70,48 @@ fn main() {
     .name(r"$x^4-3x^2+x+0\cdot\sum_{i=0}^{rand(1, 1e7)})$");
     plot.add_trace(scatter);
 
-    let guess: Result<Range<f64>, String> = Dicothomic::new(Precision(0.23))
-        .optimize(&func, -1.0..3.0)
-        .last()
-        .unwrap();
+    let guess = Dicothomic::new(Precision(0.23))
+        .try_optimize(&func, -1.0..3.0)
+        .guess();
     println!("{guess:?}");
     let guess = GoldenRatio::new(Precision(0.23))
-        .optimize(&func, -1.0..3.0)
-        .last()
-        .unwrap();
+        .try_optimize(&func, -1.0..3.0)
+        .guess();
     println!("{guess:?}");
-    let guess = Fibonacci::<4>.optimize(&func, -1.0..3.0).last().unwrap();
+    let guess = Fibonacci::<4>.try_optimize(&func, -1.0..3.0).guess();
     println!("{guess:?}");
+
 
     let func = |x: f64| x.powi(2) - 4.0 * x + 2.0;
 
     let optimizer = Newton::new(Precision(1e-5), 0.001);
-    let guess = optimizer.clone().optimize(&func, 3.0).last().unwrap();
+    let guess = optimizer.clone().optimize(&func, 3.0).guess();
     println!("{guess}");
-    let guess = optimizer.clone().optimize(&func, 6.0).last().unwrap();
+    let guess = optimizer.clone().optimize(&func, 6.0).guess();
     println!("{guess}");
-    let guess = optimizer.clone().optimize(&func, 8.0).last().unwrap();
+    let guess = optimizer.clone().optimize(&func, 8.0).guess();
     println!("{guess}");
-    let guess = optimizer.clone().optimize(&func, -15.0).last().unwrap();
+    let guess = optimizer.clone().optimize(&func, -15.0).guess();
     println!("{guess}");
 
     let func = |x: f64| x.atan().powi(2);
 
     let optimizer = Dicothomic::new(Precision(1e-5));
-    let guess = optimizer.optimize(&func, 0.0..0.5).last().unwrap();
+    let guess = optimizer.try_optimize(&func, 0.0..0.5).guess();
     println!("{guess:?}");
     let optimizer = Newton::new(Precision(1e-5), 0.001);
-    let guess = optimizer.optimize(&func, 0.25).last().unwrap();
+    let guess = optimizer.optimize(&func, 0.25).guess();
     println!("{guess:?}");
 
     let optimizer = Dicothomic::new(Precision(1e-5));
-    let guess = optimizer.optimize(&func, 0.0..3.0).last().unwrap();
+    let guess = optimizer.try_optimize(&func, 0.0..3.0).guess();
     println!("{guess:?}");
+
     let optimizer = Newton::new(Precision(1e-5), 0.001);
-    let guess = optimizer.optimize(&func, 1.5).last().unwrap();
+    for guess in optimizer.clone().optimize(&func, 1.5).take(10) {
+        println!("{guess}");
+    }
+    let guess = optimizer.optimize(&func, 1.5).guess();
     println!("{guess:?}");
 
     plot.write_html("labs/lab1/plot.html");

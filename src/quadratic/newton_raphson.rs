@@ -1,7 +1,7 @@
 use crate::{
     functions::{Function, Gradient, Hessian},
     helpers::{Iterations, Precision},
-    optimizer::Optimizer,
+    optimizer::{Optimization, Optimizer},
     quadratic::{Column, Matrix},
 };
 
@@ -24,9 +24,9 @@ impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]> for NewtonRaph
         self,
         func: &F,
         starting_guess: [f64; N],
-    ) -> impl Iterator<Item = [f64; N]> {
+    ) -> impl crate::optimizer::OptimizationResult<Guess = [f64; N]> {
         let mut guess = starting_guess;
-        (0..self.stopping_condition.0).map(move |_| {
+        Optimization::new(std::iter::once(starting_guess).chain((0..self.stopping_condition.0).map(move |_| {
             let gradient = func.gradient(self.difference);
             let hessian = func.hessian(self.difference);
             let gk = gradient.compute(guess);
@@ -35,7 +35,7 @@ impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]> for NewtonRaph
                 - (Matrix(fk).inverse().unwrap() ^ Column::new_column(gk)))
             .into_column();
             guess
-        })
+        })))
     }
 }
 
@@ -44,9 +44,9 @@ impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]> for NewtonRaph
         self,
         func: &F,
         starting_guess: [f64; N],
-    ) -> impl Iterator<Item = [f64; N]> {
+    ) -> impl crate::optimizer::OptimizationResult<Guess = [f64; N]> {
         let mut guess = starting_guess;
-        std::iter::repeat_with(move || {
+        Optimization::new(std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
             let gradient = func.gradient(self.difference);
             let hessian = func.hessian(self.difference);
             let gk = gradient.compute(guess);
@@ -55,11 +55,11 @@ impl<const N: usize> Optimizer<[f64; N], f64, [f64; N], [f64; N]> for NewtonRaph
                 - (Matrix(fk).inverse().unwrap() ^ Column::new_column(gk)))
             .into_column();
             if gk.map(|x| x * x).iter().sum::<f64>() < self.stopping_condition.0.powi(2) {
-                return None;
+                None
+            } else {
+                guess = next_guess;
+                Some(guess)
             }
-            guess = next_guess;
-            Some(guess)
-        })
-        .flatten()
+        })))
     }
 }

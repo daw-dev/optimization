@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::Range};
 
 use crate::functions::Function;
-use crate::optimizer::Optimizer;
+use crate::optimizer::{TryOptimization, TryOptimizer};
 
 #[derive(Clone)]
 pub struct Fibonacci<const N: usize>;
@@ -29,12 +29,12 @@ impl<const N: usize> Fibonacci<N> {
     };
 }
 
-impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>> for Fibonacci<N> {
-    fn optimize<F: Function<f64, f64>>(
+impl<const N: usize> TryOptimizer<f64, f64, Range<f64>, String> for Fibonacci<N> {
+    fn try_optimize<F: Function<f64, f64>>(
         self,
         func: &F,
         starting_guess: Range<f64>,
-    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
+    ) -> impl crate::optimizer::TryOptimizationResult<Guess = Range<f64>, Error = String> {
         fn find_points<const N: usize>(start: f64, end: f64, iteration: usize) -> [f64; 4] {
             let first = end - Fibonacci::<N>::GAMMAS[iteration] * (end - start);
             let second = start + Fibonacci::<N>::GAMMAS[iteration] * (end - start);
@@ -44,7 +44,7 @@ impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>>
         let mut points =
             find_points::<N>(starting_guess.start, starting_guess.end, 0).map(|x| (x, None));
 
-        (0..N).map(move |i| {
+        TryOptimization::new(std::iter::once(Ok(starting_guess.clone())).chain((0..N).map(move |i| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4)] =
                 points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
             match (y1.total_cmp(&y2), y2.total_cmp(&y3), y3.total_cmp(&y4)) {
@@ -68,6 +68,6 @@ impl<const N: usize> Optimizer<f64, f64, Range<f64>, Result<Range<f64>, String>>
                 t => return Err(format!("this function is not unimodal: {t:?}")),
             }
             Ok(points[0].0..points[3].0)
-        })
+        })))
     }
 }
