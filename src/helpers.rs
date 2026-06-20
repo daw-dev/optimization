@@ -1,5 +1,3 @@
-use crate::functions::Function;
-use crate::optimizer::{Optimization, Optimizer};
 use std::ops::Range;
 
 #[derive(Clone)]
@@ -42,12 +40,12 @@ impl Iterator for UniformSample {
     }
 }
 
-impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {
-    fn optimize<F: Function<X, Y>>(
-        self,
-        _func: &F,
-        starting_guess: Range<f64>,
-    ) -> impl crate::optimizer::OptimizationResult<Guess = f64> {
-        Optimization::new(std::iter::once((starting_guess.start + starting_guess.end) / 2.0))
-    }
-}
+// impl<X, Y> Optimizer<X, Y, Range<f64>, f64> for Average {
+//     fn optimize<F: Function<X, Y>>(
+//         self,
+//         _func: &F,
+//         starting_guess: Range<f64>,
+//     ) -> impl crate::optimizer::OptimizationResult<Guess = f64> {
+//         Optimization::new(std::iter::once((starting_guess.start + starting_guess.end) / 2.0))
+//     }
+// }

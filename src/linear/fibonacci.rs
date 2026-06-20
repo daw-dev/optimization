@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, ops::Range};
 
-use crate::functions::Function;
-use crate::optimizer::{TryOptimization, TryOptimizer};
+use crate::{functions::Function, optimizer::TryOptimize};
 
 #[derive(Clone)]
 pub struct Fibonacci<const N: usize>;
@@ -29,12 +28,17 @@ impl<const N: usize> Fibonacci<N> {
     };
 }
 
-impl<const N: usize> TryOptimizer<f64, f64, Range<f64>, String> for Fibonacci<N> {
-    fn try_optimize<F: Function<f64, f64>>(
-        self,
-        func: &F,
+impl<const N: usize, F> TryOptimize<&F, Range<f64>> for Fibonacci<N>
+where
+    F: Function<f64, f64>,
+{
+    type Error = String;
+
+    fn try_optimize(
+        &self,
+        problem: &F,
         starting_guess: Range<f64>,
-    ) -> impl crate::optimizer::TryOptimizationResult<Guess = Range<f64>, Error = String> {
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points<const N: usize>(start: f64, end: f64, iteration: usize) -> [f64; 4] {
             let first = end - Fibonacci::<N>::GAMMAS[iteration] * (end - start);
             let second = start + Fibonacci::<N>::GAMMAS[iteration] * (end - start);
@@ -44,9 +48,9 @@ impl<const N: usize> TryOptimizer<f64, f64, Range<f64>, String> for Fibonacci<N>
         let mut points =
             find_points::<N>(starting_guess.start, starting_guess.end, 0).map(|x| (x, None));
 
-        TryOptimization::new(std::iter::once(Ok(starting_guess.clone())).chain((0..N).map(move |i| {
+        std::iter::once(Ok(starting_guess.clone())).chain((0..N).map(move |i| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4)] =
-                points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
+                points.map(|(x, y)| (x, y.unwrap_or_else(|| problem.compute(x))));
             match (y1.total_cmp(&y2), y2.total_cmp(&y3), y3.total_cmp(&y4)) {
                 (Ordering::Less, Ordering::Less, Ordering::Less) => {
                     let [x1, x2, x3, x4] = find_points::<N>(x1, x2, i + 1);
@@ -68,6 +72,6 @@ impl<const N: usize> TryOptimizer<f64, f64, Range<f64>, String> for Fibonacci<N>
                 t => return Err(format!("this function is not unimodal: {t:?}")),
             }
             Ok(points[0].0..points[3].0)
-        })))
+        }))
     }
 }

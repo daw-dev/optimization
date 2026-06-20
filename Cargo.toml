@@ -8,8 +8,7 @@ edition = "2024"
 [dependencies]
 rand = "0.10.0"
 plotly = "0.14.1"
-
-[dev-dependencies]
+itertools = "0.15.0"
 
 [[example]]
 name = "lab1"

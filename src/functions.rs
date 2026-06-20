@@ -10,6 +10,12 @@ impl<'a, X, Y> Function<X, Y> for Box<dyn Function<X, Y> + 'a> {
     }
 }
 
+impl<'a, X, Y> Function<X, Y> for &'a dyn Function<X, Y> {
+    fn compute(&self, x: X) -> Y {
+        (**self).compute(x)
+    }
+}
+
 impl<F, X, Y> Function<X, Y> for F
 where
     F: Fn(X) -> Y,

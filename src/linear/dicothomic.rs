@@ -1,6 +1,6 @@
 use crate::functions::Function;
 use crate::helpers::{Iterations, Precision};
-use crate::optimizer::{TryOptimization, TryOptimizer};
+use crate::optimizer::TryOptimize;
 use std::{cmp::Ordering, ops::Range};
 
 #[derive(Clone)]
@@ -20,12 +20,17 @@ impl<S> Dicothomic<S> {
     }
 }
 
-impl TryOptimizer<f64, f64, Range<f64>, String> for Dicothomic<Iterations> {
-    fn try_optimize<F: Function<f64, f64>>(
-        self,
-        func: &F,
+impl<F> TryOptimize<&F, Range<f64>> for Dicothomic<Iterations>
+where
+    F: Function<f64, f64> + ?Sized,
+{
+    type Error = String;
+
+    fn try_optimize(
+        &self,
+        problem: &F,
         starting_guess: Range<f64>,
-    ) -> impl crate::optimizer::TryOptimizationResult<Guess = Range<f64>, Error = String> {
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -35,86 +40,98 @@ impl TryOptimizer<f64, f64, Range<f64>, String> for Dicothomic<Iterations> {
 
         let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
 
-        TryOptimization::new(std::iter::once(Ok(starting_guess.clone())).chain((0..self.stopping_condition.0).map(move |_| {
-            let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
-                points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
-            match (
-                y1.total_cmp(&y2),
-                y2.total_cmp(&y3),
-                y3.total_cmp(&y4),
-                y4.total_cmp(&y5),
-            ) {
-                (Ordering::Less, Ordering::Less, Ordering::Less, Ordering::Less) => {
-                    let [x1, x2, x3, x4, x5] = find_points(x1, x2);
-                    points = [
-                        (x1, Some(y1)),
-                        (x2, None),
-                        (x3, None),
-                        (x4, None),
-                        (x5, Some(y2)),
-                    ]
+        std::iter::once(Ok(starting_guess.clone())).chain((0..self.stopping_condition.0).map(
+            move |_| {
+                let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
+                    points.map(|(x, y)| (x, y.unwrap_or_else(|| problem.compute(x))));
+                match (
+                    y1.total_cmp(&y2),
+                    y2.total_cmp(&y3),
+                    y3.total_cmp(&y4),
+                    y4.total_cmp(&y5),
+                ) {
+                    (Ordering::Less, Ordering::Less, Ordering::Less, Ordering::Less) => {
+                        let [x1, x2, x3, x4, x5] = find_points(x1, x2);
+                        points = [
+                            (x1, Some(y1)),
+                            (x2, None),
+                            (x3, None),
+                            (x4, None),
+                            (x5, Some(y2)),
+                        ]
+                    }
+                    (Ordering::Greater, Ordering::Less, Ordering::Less, Ordering::Less) => {
+                        let [x1, x2, x3, x4, x5] = find_points(x1, x3);
+                        points = [
+                            (x1, Some(y1)),
+                            (x2, None),
+                            (x3, Some(y2)),
+                            (x4, None),
+                            (x5, Some(y3)),
+                        ]
+                    }
+                    (Ordering::Greater, Ordering::Greater, Ordering::Less, Ordering::Less) => {
+                        let [x1, x2, x3, x4, x5] = find_points(x2, x4);
+                        points = [
+                            (x1, Some(y2)),
+                            (x2, None),
+                            (x3, Some(y3)),
+                            (x4, None),
+                            (x5, Some(y4)),
+                        ]
+                    }
+                    (Ordering::Greater, Ordering::Greater, Ordering::Greater, Ordering::Less) => {
+                        let [x1, x2, x3, x4, x5] = find_points(x3, x5);
+                        points = [
+                            (x1, Some(y3)),
+                            (x2, None),
+                            (x3, Some(y4)),
+                            (x4, None),
+                            (x5, Some(y5)),
+                        ]
+                    }
+                    (
+                        Ordering::Greater,
+                        Ordering::Greater,
+                        Ordering::Greater,
+                        Ordering::Greater,
+                    ) => {
+                        let [x1, x2, x3, x4, x5] = find_points(x4, x5);
+                        points = [
+                            (x1, Some(y4)),
+                            (x2, None),
+                            (x3, None),
+                            (x4, None),
+                            (x5, Some(y5)),
+                        ]
+                    }
+                    (Ordering::Greater, Ordering::Equal, Ordering::Less, Ordering::Less) => {
+                        return Ok(x2..x3);
+                    }
+                    (Ordering::Greater, Ordering::Greater, Ordering::Equal, Ordering::Less) => {
+                        return Ok(x3..x4);
+                    }
+                    t => {
+                        return Err(format!("this function is not unimodal: {t:?}"));
+                    }
                 }
-                (Ordering::Greater, Ordering::Less, Ordering::Less, Ordering::Less) => {
-                    let [x1, x2, x3, x4, x5] = find_points(x1, x3);
-                    points = [
-                        (x1, Some(y1)),
-                        (x2, None),
-                        (x3, Some(y2)),
-                        (x4, None),
-                        (x5, Some(y3)),
-                    ]
-                }
-                (Ordering::Greater, Ordering::Greater, Ordering::Less, Ordering::Less) => {
-                    let [x1, x2, x3, x4, x5] = find_points(x2, x4);
-                    points = [
-                        (x1, Some(y2)),
-                        (x2, None),
-                        (x3, Some(y3)),
-                        (x4, None),
-                        (x5, Some(y4)),
-                    ]
-                }
-                (Ordering::Greater, Ordering::Greater, Ordering::Greater, Ordering::Less) => {
-                    let [x1, x2, x3, x4, x5] = find_points(x3, x5);
-                    points = [
-                        (x1, Some(y3)),
-                        (x2, None),
-                        (x3, Some(y4)),
-                        (x4, None),
-                        (x5, Some(y5)),
-                    ]
-                }
-                (Ordering::Greater, Ordering::Greater, Ordering::Greater, Ordering::Greater) => {
-                    let [x1, x2, x3, x4, x5] = find_points(x4, x5);
-                    points = [
-                        (x1, Some(y4)),
-                        (x2, None),
-                        (x3, None),
-                        (x4, None),
-                        (x5, Some(y5)),
-                    ]
-                }
-                (Ordering::Greater, Ordering::Equal, Ordering::Less, Ordering::Less) => {
-                    return Ok(x2..x3);
-                }
-                (Ordering::Greater, Ordering::Greater, Ordering::Equal, Ordering::Less) => {
-                    return Ok(x3..x4);
-                }
-                t => {
-                    return Err(format!("this function is not unimodal: {t:?}"));
-                }
-            }
-            Ok(points[0].0..points[4].0)
-        })))
+                Ok(points[0].0..points[4].0)
+            },
+        ))
     }
 }
 
-impl TryOptimizer<f64, f64, Range<f64>, String> for Dicothomic<Precision> {
-    fn try_optimize<F: Function<f64, f64>>(
-        self,
-        func: &F,
+impl<F> TryOptimize<&F, Range<f64>> for Dicothomic<Precision>
+where
+    F: Function<f64, f64> + ?Sized,
+{
+    type Error = String;
+
+    fn try_optimize(
+        &self,
+        problem: &F,
         starting_guess: Range<f64>,
-    ) -> impl crate::optimizer::TryOptimizationResult<Guess = Range<f64>, Error = String> {
+    ) -> impl Iterator<Item = Result<Range<f64>, String>> {
         fn find_points(start: f64, end: f64) -> [f64; 5] {
             let mid = (start + end) / 2.0;
             let left_quarter = (start + mid) / 2.0;
@@ -122,14 +139,13 @@ impl TryOptimizer<f64, f64, Range<f64>, String> for Dicothomic<Precision> {
             [start, left_quarter, mid, right_quarter, end]
         }
 
+        let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
         let iterations =
             Self::iterations_from_precision(self.stopping_condition.0, &starting_guess);
 
-        let mut points = find_points(starting_guess.start, starting_guess.end).map(|x| (x, None));
-
-        TryOptimization::new(std::iter::once(Ok(starting_guess.clone())).chain((0..iterations).map(move |_| {
+        std::iter::once(Ok(starting_guess.clone())).chain((0..iterations).map(move |_| {
             let [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] =
-                points.map(|(x, y)| (x, y.unwrap_or_else(|| func.compute(x))));
+                points.map(|(x, y)| (x, y.unwrap_or_else(|| problem.compute(x))));
             match (
                 y1.total_cmp(&y2),
                 y2.total_cmp(&y3),
@@ -197,6 +213,6 @@ impl TryOptimizer<f64, f64, Range<f64>, String> for Dicothomic<Precision> {
                 }
             }
             Ok(points[0].0..points[4].0)
-        })))
+        }))
     }
 }

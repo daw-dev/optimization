@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use optimization::{
     functions::Function,
     helpers::{Precision, UniformSample},
@@ -5,7 +6,7 @@ use optimization::{
         dicothomic::Dicothomic,
         gradient_descent::{FixedStepGradientDescent, SteepestGradientDescent},
     },
-    optimizer::{OptimizationResult, Optimizer, TryOptimizer},
+    optimizer::{Optimize, TryOptimize},
 };
 use plotly::{Layout, Plot, Scatter3D, Surface, color::NamedColor, common::Marker};
 
@@ -34,10 +35,7 @@ fn main() {
 
     let optimizer = FixedStepGradientDescent::new(0.001, 0.1, Precision(1e-4));
 
-    let mut guesses = Vec::new();
-    for guess in optimizer.optimize(&func, [4.0, 8.0]).guesses() {
-        guesses.push(guess);
-    }
+    let guesses = optimizer.optimize(&func, [4.0, 8.0]).collect_vec();
 
     println!(
         "final guess is {:.5?} in {} steps",
@@ -65,40 +63,32 @@ fn main() {
         Precision(1e-4),
     );
 
-    let result = optimizer.try_optimize(&func, [4.0, 8.0]);
+    let result = optimizer
+        .try_optimize(&func, [6.0, 5.0])
+        .process_results(|iter| iter.collect_vec());
 
-    let mut guesses = Vec::new();
-    let mut line_search_error = None;
-    for guess in result.guesses() {
-        match guess {
-            Ok(guess) => guesses.push(guess),
-            Err(reason) => {
-                line_search_error = Some(reason);
-                break;
-            }
+    match result {
+        Ok(guesses) => {
+            println!(
+                "final guess is {:.5?} in {} steps",
+                guesses.last().unwrap(),
+                guesses.len()
+            );
+
+            let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+
+            let scatter = Scatter3D::new(
+                x1s,
+                x2s,
+                guesses.iter().map(|point| func.compute(*point)).collect(),
+            )
+            .marker(Marker::new().size(2))
+            .surface_color(NamedColor::Lime);
+
+            plot.add_trace(scatter);
         }
+        Err(error) => eprintln!("{error}"),
     }
-    if let Some(reason) = line_search_error {
-        eprintln!("couldn't optimize for the following reason: {reason}");
-    } else {
-        println!(
-            "final guess is {:.5?} in {} steps",
-            guesses.last().unwrap(),
-            guesses.len()
-        );
-    }
-
-    let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
-
-    let scatter = Scatter3D::new(
-        x1s,
-        x2s,
-        guesses.iter().map(|point| func.compute(*point)).collect(),
-    )
-    .marker(Marker::new().size(2))
-    .surface_color(NamedColor::Lime);
-
-    plot.add_trace(scatter);
 
     plot.write_html("labs/lab2/plot1.html");
 
@@ -130,10 +120,7 @@ fn main() {
 
     let optimizer = FixedStepGradientDescent::new(0.001, 0.001, Precision(1e-4));
 
-    let mut guesses = Vec::new();
-    for guess in optimizer.optimize(&func, [6.0, 5.0]).guesses() {
-        guesses.push(guess);
-    }
+    let guesses = optimizer.optimize(&func, [6.0, 5.0]).collect_vec();
 
     println!(
         "final guess is {:.5?} in {} steps",
@@ -161,40 +148,33 @@ fn main() {
         Precision(1e-4),
     );
 
-    let result = optimizer.try_optimize(&func, [6.0, 5.0]);
+    let result = optimizer
+        .try_optimize(&func, [6.0, 5.0])
+        .process_results(|iter| iter.collect_vec());
 
-    let mut guesses = Vec::new();
-    let mut line_search_error = None;
-    for guess in result.guesses() {
-        match guess {
-            Ok(guess) => guesses.push(guess),
-            Err(reason) => {
-                line_search_error = Some(reason);
-                break;
-            }
+    match result {
+        Ok(guesses) => {
+            println!(
+                "final guess is {:.5?} in {} steps",
+                guesses.last().unwrap(),
+                guesses.len()
+            );
+
+            let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+
+            let scatter = Scatter3D::new(
+                x1s,
+                x2s,
+                guesses.iter().map(|point| func.compute(*point)).collect(),
+            )
+            .marker(Marker::new().size(2))
+            .surface_color(NamedColor::Lime);
+
+            plot.add_trace(scatter);
         }
-    }
-    if let Some(reason) = line_search_error {
-        eprintln!("couldn't optimize for the following reason: {reason}");
-    } else {
-        println!(
-            "final guess is {:.5?} in {} steps",
-            guesses.last().unwrap(),
-            guesses.len()
-        );
+        Err(error) => eprintln!("{error}"),
     }
 
-    let (x1s, x2s) = guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
-
-    let scatter = Scatter3D::new(
-        x1s,
-        x2s,
-        guesses.iter().map(|point| func.compute(*point)).collect(),
-    )
-    .marker(Marker::new().size(2))
-    .surface_color(NamedColor::Lime);
-
-    plot.add_trace(scatter);
     plot.write_html("labs/lab2/plot2.html");
 
     // -------------------------------------------------------
@@ -226,10 +206,7 @@ fn main() {
 
         let optimizer = FixedStepGradientDescent::new(0.001, step, Precision(1e-4));
 
-        let mut guesses = Vec::new();
-        for guess in optimizer.optimize(&func, [-1.8, 2.0]).guesses() {
-            guesses.push(guess);
-        }
+        let guesses = optimizer.optimize(&func, [-1.8, 2.0]).collect_vec();
 
         println!(
             "final guess is {:.5?} in {} steps",
@@ -244,7 +221,7 @@ fn main() {
             x2s,
             guesses.iter().map(|point| func.compute(*point)).collect(),
         )
-            .marker(Marker::new().size(2));
+        .marker(Marker::new().size(2));
 
         plot.add_trace(scatter);
     }

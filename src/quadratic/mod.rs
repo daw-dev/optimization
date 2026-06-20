@@ -6,6 +6,7 @@ use std::{
 
 pub mod conjugate;
 pub mod newton_raphson;
+pub mod simplex;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix<const N: usize, const M: usize, T>(pub [[T; M]; N]);
