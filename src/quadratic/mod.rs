@@ -1,14 +1,18 @@
 use std::{
     array,
     fmt::Display,
-    ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{
+        Add, AddAssign, BitXor, BitXorAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+    },
 };
 
 pub mod conjugate;
+pub mod constrained;
+pub mod genetic;
 pub mod newton_raphson;
 pub mod simplex;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Matrix<const N: usize, const M: usize, T>(pub [[T; M]; N]);
 
 pub type SquareMatrix<const N: usize, T> = Matrix<N, N, T>;
@@ -287,5 +291,19 @@ impl<const N: usize, const M: usize, T: Display> Display for Matrix<N, M, T> {
             writeln!(f)?;
         }
         Ok(())
+    }
+}
+
+impl<const N: usize, const M: usize, T> IndexMut<(usize, usize)> for Matrix<N, M, T> {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        &mut self.0[index.0][index.1]
+    }
+}
+
+impl<const N: usize, const M: usize, T> Index<(usize, usize)> for Matrix<N, M, T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        &self.0[index.0][index.1]
     }
 }
