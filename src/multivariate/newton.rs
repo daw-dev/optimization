@@ -1,8 +1,8 @@
 use crate::{
-    functions::{Function, Gradient, Hessian},
+    function::{Function, Gradient, Hessian},
     helpers::{Iterations, Precision},
     optimizer::Optimize,
-    quadratic::{Column, Matrix},
+    linalg::{Column, Matrix},
 };
 
 pub struct NewtonRaphson<S> {
@@ -19,7 +19,7 @@ impl<S> NewtonRaphson<S> {
     }
 }
 
-impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
     for NewtonRaphson<Iterations>
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
@@ -37,7 +37,7 @@ impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, 
     }
 }
 
-impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
     for NewtonRaphson<Precision>
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {

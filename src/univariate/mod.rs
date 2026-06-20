@@ -1,5 +1,4 @@
-pub mod dicothomic;
+pub mod dichotomy;
 pub mod golden;
 pub mod fibonacci;
 pub mod newton;
-pub mod gradient_descent;

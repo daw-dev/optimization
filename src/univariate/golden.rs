@@ -1,6 +1,6 @@
 use crate::helpers::Iterations;
 use crate::optimizer::TryOptimize;
-use crate::{functions::Function, helpers::Precision};
+use crate::{function::Function, helpers::Precision};
 use std::{cmp::Ordering, f64, ops::Range};
 
 #[derive(Clone)]
@@ -24,7 +24,7 @@ impl<S> GoldenRatio<S> {
 
 impl<F> TryOptimize<&F, Range<f64>> for GoldenRatio<Precision>
 where
-    F: Function<f64, f64>,
+    F: Function<f64, f64> + ?Sized,
 {
     type Error = String;
     fn try_optimize(
@@ -76,7 +76,10 @@ where
     }
 }
 
-impl<F: Function<f64, f64>> TryOptimize<&F, Range<f64>> for GoldenRatio<Iterations> {
+impl<F> TryOptimize<&F, Range<f64>> for GoldenRatio<Iterations>
+where
+    F: Function<f64, f64> + ?Sized,
+{
     type Error = String;
     fn try_optimize(
         &self,
@@ -125,3 +128,4 @@ impl<F: Function<f64, f64>> TryOptimize<&F, Range<f64>> for GoldenRatio<Iteratio
         }))
     }
 }
+

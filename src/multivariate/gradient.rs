@@ -1,5 +1,5 @@
 use crate::{
-    functions::{Function, Gradient},
+    function::{Function, Gradient},
     helpers::{Iterations, Precision},
     optimizer::{Optimize, TryOptimize},
 };
@@ -21,7 +21,7 @@ impl<S> FixedStepGradientDescent<S> {
     }
 }
 
-impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
     for FixedStepGradientDescent<Precision>
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
@@ -43,7 +43,7 @@ impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, 
     }
 }
 
-impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
     for FixedStepGradientDescent<Iterations>
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {

@@ -1,37 +1,173 @@
 #![allow(non_snake_case)]
-
 use optimization::{
+    linalg::{Column, SquareMatrix},
+    multivariate::conjugate::{Conjugate, PerfectQuadraticProblem},
     optimizer::TryOptimize,
-    quadratic::{
-        Column, SquareMatrix,
-        conjugate::{Conjugate, PerfectQuadraticProblem},
-    },
 };
+use plotly::{Plot, Scatter};
 
 pub fn main() {
+    println!("========================================");
+    println!("  LAB 3: Conjugate Gradient Method");
+    println!("========================================");
+
+    // -------------------------------------------------------------------------
+    // Exercise 1 (Dimension n = 5)
+    // -------------------------------------------------------------------------
+    println!("\n--- Exercise 1: Quadratic Optimization (n = 5) ---");
     const N: usize = 5;
 
     let A = SquareMatrix::<N, f64>::randomized(0.0..2.0);
     let A = (A * A.transpose()) + SquareMatrix::identity();
 
-    println!("A");
+    println!("Matrix A:");
     println!("{A}");
 
     let B = Column::<N, f64>::randomized(0.0..2.0);
-
-    println!("B");
+    println!("Vector B:");
     println!("{B}");
 
-    let min = (A.inverse().unwrap() * B).into_column();
-    println!("{min:?}");
+    let analytical_col = A.inverse().unwrap() * B.clone();
+    let x_th = analytical_col.clone().into_column();
+    println!("Analytical Solution:\n  {:?}", x_th);
 
-    let result = Conjugate.try_solution(
-        PerfectQuadraticProblem { matrix: A, b: B },
-        Column::randomized(0.0..2.0),
+    let start_guess = Column::randomized(0.0..2.0);
+    let mut x = start_guess.clone();
+    let guesses_iter = Conjugate.try_optimize(
+        PerfectQuadraticProblem { matrix: A.clone(), b: B.clone() },
+        start_guess.clone(),
     );
 
-    match result {
-        Ok(min) => println!("result is {:?}", min),
-        Err(err) => eprintln!("{err}"),
+    let mut steps_ex1 = Vec::new();
+    let mut errors_ex1 = Vec::new();
+
+    // Step 0 error
+    let diff0 = x.clone() - analytical_col.clone();
+    errors_ex1.push((diff0.transpose() * diff0).into_value().sqrt().log10());
+    steps_ex1.push(0.0);
+
+    let mut steps_cnt = 0;
+    for (i, guess_res) in guesses_iter.enumerate() {
+        match guess_res {
+            Ok(g) => {
+                x = g;
+                let diff = x.clone() - analytical_col.clone();
+                errors_ex1.push((diff.transpose() * diff).into_value().sqrt().log10());
+                steps_ex1.push((i + 1) as f64);
+                steps_cnt = i + 1;
+            }
+            Err(err) => {
+                println!("  CG Error during execution: {err}");
+                break;
+            }
+        }
     }
+
+    println!("\nConjugate Gradient Solver:");
+    println!("  Starting Guess:   {:?}", start_guess.into_column());
+    println!("  Final Estimate:   {:?}", x.into_column());
+    println!("  Steps:            {}", steps_cnt);
+    println!("  Convergence:      Success");
+
+    let diff_final = x - analytical_col;
+    let final_err = (diff_final.transpose() * diff_final).into_value().sqrt();
+    println!("  Final Error norm: {:.2e}", final_err);
+
+    // Create Plot 1
+    let mut plot1 = Plot::new();
+    let scatter1 = Scatter::new(steps_ex1, errors_ex1)
+        .name("Error Norm vs Steps")
+        .x_axis("x")
+        .y_axis("y");
+    plot1.add_trace(scatter1);
+    plot1.set_layout(
+        plotly::Layout::new()
+            .x_axis(plotly::layout::Axis::new().title("Iteration Step"))
+            .y_axis(plotly::layout::Axis::new().title("log10(||x_k - x*||)")),
+    );
+
+    // -------------------------------------------------------------------------
+    // Exercise 2 (Dimension n = 50)
+    // -------------------------------------------------------------------------
+    println!("\n--- Exercise 2: High-Dimension Quadratic (n = 50) ---");
+    const N2: usize = 50;
+
+    let A2 = SquareMatrix::<N2, f64>::randomized(0.0..1.0);
+    let A2 = (A2 * A2.transpose()) + SquareMatrix::identity();
+    let B2 = Column::<N2, f64>::randomized(0.0..1.0);
+
+    // Compute analytical solution
+    let x_th2 = A2.inverse().unwrap() * B2.clone();
+
+    // Conjugate Gradient with stopping criterion ||grad|| <= 10^-8
+    let mut x2 = Column::<N2, f64>::zeros();
+    let qx = A2 * x2.clone();
+    let mut g = qx - B2.clone();
+    let mut d = -g.clone();
+
+    let mut steps_ex2 = Vec::new();
+    let mut errors_ex2 = Vec::new();
+
+    let mut steps2 = 0;
+    for step in 0..N2 {
+        let diff = x2.clone() - x_th2.clone();
+        let err_norm = (diff.transpose() * diff).into_value().sqrt();
+        steps_ex2.push(step as f64);
+        errors_ex2.push(err_norm.log10());
+
+        let g_norm = (g.transpose() * g.clone()).into_value().sqrt();
+        if g_norm <= 1e-8 {
+            break;
+        }
+
+        let qd = A2 * d.clone();
+        let den = (d.transpose() * qd.clone()).into_value();
+        if den.abs() < f64::EPSILON {
+            break;
+        }
+
+        let alpha = -(g.transpose() * d.clone()).into_value() / den;
+        x2 = x2 + d.clone() * alpha;
+
+        let g_next = g.clone() + qd * alpha;
+        let beta = (g_next.transpose() * qd).into_value() / den;
+        d = -g_next.clone() + d * beta;
+        g = g_next;
+        steps2 = step + 1;
+    }
+
+    println!("Conjugate Gradient Solver (||grad|| <= 10^-8):");
+    println!("  Starting Guess:   Zeros");
+    println!("  Steps/Iterations: {}", steps2);
+    println!("  Convergence:      Success");
+
+    let diff_final2 = x2 - x_th2;
+    let final_err2 = (diff_final2.transpose() * diff_final2).into_value().sqrt();
+    println!("  Final Error norm: {:.2e}", final_err2);
+
+    // Create Plot 2
+    let mut plot2 = Plot::new();
+    let scatter2 = Scatter::new(steps_ex2, errors_ex2)
+        .name("Error Norm vs Steps")
+        .x_axis("x")
+        .y_axis("y");
+    plot2.add_trace(scatter2);
+    plot2.set_layout(
+        plotly::Layout::new()
+            .x_axis(plotly::layout::Axis::new().title("Iteration Step"))
+            .y_axis(plotly::layout::Axis::new().title("log10(||x_k - x*||)")),
+    );
+
+    // Save dashboard
+    optimization::helpers::save_dashboard(
+        "labs/lab3/plot.html",
+        "LAB 3: Conjugate Gradient Method",
+        &[
+            ("Exercise 1 Convergence (n=5)", &plot1),
+            ("Exercise 2 Convergence (n=50)", &plot2),
+        ],
+    )
+    .unwrap();
+
+    println!("\nSaved plots to: labs/lab3/plot.html");
 }

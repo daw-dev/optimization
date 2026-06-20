@@ -1,6 +1,6 @@
 use crate::{
     optimizer::TryOptimize,
-    quadratic::{Column, SquareMatrix},
+    linalg::{Column, SquareMatrix},
 };
 
 pub struct PerfectQuadraticProblem<const N: usize> {
@@ -63,9 +63,10 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>> for
 }
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use super::*;
-    use crate::quadratic::Matrix;
+    use crate::linalg::Matrix;
 
     #[test]
     fn test_cg_convergence() {

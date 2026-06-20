@@ -63,7 +63,7 @@ where
         array::from_fn(|i| {
             Box::new(move |point: [f64; N]| -> f64 {
                 (|x: f64| {
-                    let mut point = point.clone();
+                    let mut point = point;
                     point[i] = x;
                     self.compute(point)
                 })

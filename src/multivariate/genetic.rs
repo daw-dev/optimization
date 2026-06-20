@@ -1,7 +1,7 @@
 use rand::RngExt;
 
 use crate::optimizer::TryOptimize;
-use crate::quadratic::Column;
+use crate::linalg::Column;
 
 pub struct RealGAProblem<F> {
     pub objective: F,

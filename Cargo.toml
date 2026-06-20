@@ -25,3 +25,9 @@ path = "labs/lab3/main.rs"
 [[example]]
 name = "lab4"
 path = "labs/lab4/main.rs"
+
+[[example]]
+name = "lab5"
+path = "labs/lab5/main.rs"
+
+

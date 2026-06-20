@@ -1,5 +1,5 @@
 use crate::optimizer::TryOptimize;
-use crate::quadratic::{Column, Matrix, SquareMatrix};
+use crate::linalg::{Column, Matrix, SquareMatrix};
 
 pub struct EqualityConstrainedQP<const N: usize, const M: usize> {
     pub q: SquareMatrix<N, f64>,

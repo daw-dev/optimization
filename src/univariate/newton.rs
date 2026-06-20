@@ -1,5 +1,5 @@
 use crate::{
-    functions::{Derivative, Function},
+    function::{Derivative, Function},
     helpers::{Iterations, Precision},
     optimizer::Optimize,
 };

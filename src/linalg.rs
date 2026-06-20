@@ -1,25 +1,11 @@
 use std::{
     array,
     fmt::Display,
-    ops::{
-        Add, AddAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
-    },
+    ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
-
-pub mod conjugate;
-pub mod constrained;
-pub mod genetic;
-pub mod newton_raphson;
-pub mod simplex;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix<const N: usize, const M: usize, T>(pub [[T; M]; N]);
-
-impl<const N: usize, const M: usize, T: Default> Default for Matrix<N, M, T> {
-    fn default() -> Self {
-        Self(array::from_fn(|_| array::from_fn(|_| T::default())))
-    }
-}
 
 pub type SquareMatrix<const N: usize, T> = Matrix<N, N, T>;
 
@@ -28,6 +14,12 @@ pub type Column<const N: usize, T> = Matrix<N, 1, T>;
 pub type Row<const M: usize, T> = Matrix<1, M, T>;
 
 pub type Value<T> = SquareMatrix<1, T>;
+
+impl<const N: usize, const M: usize, T: Default> Default for Matrix<N, M, T> {
+    fn default() -> Self {
+        Self(array::from_fn(|_| array::from_fn(|_| T::default())))
+    }
+}
 
 impl<const N: usize, const M: usize, T> Matrix<N, M, T> {
     pub fn randomized<R>(range: R) -> Self
@@ -64,6 +56,7 @@ impl<const N: usize> SquareMatrix<N, f64> {
             array::from_fn(|j| if i == j { 1.0 } else { 0.0 })
         }))
     }
+
     pub fn inverse(&self) -> Option<Self> {
         let mut a = self.0.clone();
         let mut inv = Self::identity().0;
@@ -367,4 +360,3 @@ impl<const TOTAL: usize> Column<TOTAL, f64> {
         Matrix(result)
     }
 }
-

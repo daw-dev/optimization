@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, ops::Range};
 
-use crate::{functions::Function, optimizer::TryOptimize};
+use crate::{function::Function, optimizer::TryOptimize};
 
 #[derive(Clone)]
 pub struct Fibonacci<const N: usize>;

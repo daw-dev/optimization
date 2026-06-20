@@ -1,14 +1,14 @@
-use crate::functions::Function;
+use crate::function::Function;
 use crate::helpers::{Iterations, Precision};
 use crate::optimizer::TryOptimize;
 use std::{cmp::Ordering, ops::Range};
 
 #[derive(Clone)]
-pub struct Dicothomic<S> {
+pub struct Dichotomy<S> {
     stopping_condition: S,
 }
 
-impl<S> Dicothomic<S> {
+impl<S> Dichotomy<S> {
     pub fn iterations_from_precision(precision: f64, starting_interval: &Range<f64>) -> usize {
         ((starting_interval.end - starting_interval.start) / precision)
             .log2()
@@ -20,7 +20,7 @@ impl<S> Dicothomic<S> {
     }
 }
 
-impl<F> TryOptimize<&F, Range<f64>> for Dicothomic<Iterations>
+impl<F> TryOptimize<&F, Range<f64>> for Dichotomy<Iterations>
 where
     F: Function<f64, f64> + ?Sized,
 {
@@ -121,7 +121,7 @@ where
     }
 }
 
-impl<F> TryOptimize<&F, Range<f64>> for Dicothomic<Precision>
+impl<F> TryOptimize<&F, Range<f64>> for Dichotomy<Precision>
 where
     F: Function<f64, f64> + ?Sized,
 {
