@@ -20,7 +20,10 @@ impl<const N: usize, const M: usize> TryOptimize<
     EqualityConstrainedQP<N, M>, 
     QPStep<N, M>, 
     QPStep<N, M>
-> for NewtonRaphsonQP<N, M> {
+> for NewtonRaphsonQP<N, M>
+where
+    [(); N + M]:,
+{
     type Error = String;
 
     fn try_optimize(
@@ -47,8 +50,8 @@ impl<const N: usize, const M: usize> TryOptimize<
             // 2. Construct gradient vector g
             // [ Qx + c ]
             // [ Ax - b ]
-            let qx_c = (problem.q ^ current.x) + problem.c;
-            let ax_b = (problem.a ^ current.x) - problem.b;
+            let qx_c = (problem.q * current.x) + problem.c;
+            let ax_b = (problem.a * current.x) - problem.b;
             let g = qx_c.stack(&ax_b);
 
             // 3. Solve H_L * [p, lambda] = -g
@@ -62,7 +65,7 @@ impl<const N: usize, const M: usize> TryOptimize<
             let lambda_new = solution.extract_lambda();
 
             // 4. Tolerance check for convergence
-            let p_norm = (p.transpose() ^ p).into_value().sqrt();
+            let p_norm = (p.transpose() * p).into_value().sqrt();
             if p_norm <= 1e-7 {
                 opt = true;
                 current.lambda = lambda_new;

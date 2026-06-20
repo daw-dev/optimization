@@ -12,7 +12,7 @@ pub fn main() {
     const N: usize = 5;
 
     let A = SquareMatrix::<N, f64>::randomized(0.0..2.0);
-    let A = A ^ A.transpose() + SquareMatrix::identity();
+    let A = (A * A.transpose()) + SquareMatrix::identity();
 
     println!("A");
     println!("{A}");
@@ -22,7 +22,7 @@ pub fn main() {
     println!("B");
     println!("{B}");
 
-    let min = (-A.inverse().unwrap() ^ B).into_column();
+    let min = (A.inverse().unwrap() * B).into_column();
     println!("{min:?}");
 
     let result = Conjugate.try_solution(

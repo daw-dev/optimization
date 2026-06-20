@@ -128,7 +128,7 @@ where
                     c2[(0, j)] = lambda * p1[(0, j)] + (1.0 - lambda) * p2[(0, j)];
                 }
 
-                for mut child in [&mut c1, &mut c2] {
+                for child in [&mut c1, &mut c2] {
                     if rng.random::<f64>() <= problem.mutation_rate {
                         for j in 0..N {
                             child[(0, j)] += l_scale * 0.05 * (rng.random::<f64>() - 0.5);

@@ -30,7 +30,7 @@ impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, 
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);
             guess = (Column::new_column(guess)
-                - (Matrix(fk).inverse().unwrap() ^ Column::new_column(gk)))
+                - (Matrix(fk).inverse().unwrap() * Column::new_column(gk)))
             .into_column();
             guess
         }))
@@ -48,7 +48,7 @@ impl<const N: usize, F: crate::functions::Function<[f64; N], f64>> Optimize<&F, 
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);
             let next_guess = (Column::new_column(guess)
-                - (Matrix(fk).inverse().unwrap() ^ Column::new_column(gk)))
+                - (Matrix(fk).inverse().unwrap() * Column::new_column(gk)))
             .into_column();
             if gk.map(|x| x * x).iter().sum::<f64>() < self.stopping_condition.0.powi(2) {
                 None

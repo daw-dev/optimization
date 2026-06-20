@@ -2,7 +2,7 @@ use std::{
     array,
     fmt::Display,
     ops::{
-        Add, AddAssign, BitXor, BitXorAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+        Add, AddAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
     },
 };
 
@@ -12,8 +12,14 @@ pub mod genetic;
 pub mod newton_raphson;
 pub mod simplex;
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct Matrix<const N: usize, const M: usize, T>(pub [[T; M]; N]);
+
+impl<const N: usize, const M: usize, T: Default> Default for Matrix<N, M, T> {
+    fn default() -> Self {
+        Self(array::from_fn(|_| array::from_fn(|_| T::default())))
+    }
+}
 
 pub type SquareMatrix<const N: usize, T> = Matrix<N, N, T>;
 
@@ -225,60 +231,39 @@ where
     }
 }
 
-impl<const N: usize, const M: usize, T, U> Mul<U> for Matrix<N, M, T>
-where
-    T: Mul<U>,
-    U: Copy,
-{
-    type Output = Matrix<N, M, T::Output>;
+impl<const N: usize, const M: usize> Mul<f64> for Matrix<N, M, f64> {
+    type Output = Matrix<N, M, f64>;
 
-    fn mul(self, rhs: U) -> Self::Output {
+    fn mul(self, rhs: f64) -> Self::Output {
         Matrix(self.0.map(|row| row.map(|val| val * rhs)))
     }
 }
 
-impl<const N: usize, const M: usize, T, U> MulAssign<Matrix<N, M, U>> for Matrix<N, M, T>
-where
-    T: MulAssign<U>,
-{
-    fn mul_assign(&mut self, rhs: Matrix<N, M, U>) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0.into_iter())
-            .for_each(|(dst, src)| {
-                dst.iter_mut().zip(src.into_iter()).for_each(|(dst, src)| {
-                    *dst *= src;
-                })
-            });
+impl<const N: usize, const M: usize> Mul<Matrix<N, M, f64>> for f64 {
+    type Output = Matrix<N, M, f64>;
+
+    fn mul(self, rhs: Matrix<N, M, f64>) -> Self::Output {
+        Matrix(rhs.0.map(|row| row.map(|val| self * val)))
     }
 }
 
-impl<const A: usize, const B: usize, const C: usize, T, U> BitXor<Matrix<B, C, U>>
-    for Matrix<A, B, T>
-where
-    T: Mul<U> + Copy,
-    U: Copy,
-    T::Output: Add<Output = T::Output> + Default,
-{
-    type Output = Matrix<A, C, T::Output>;
-    fn bitxor(self, rhs: Matrix<B, C, U>) -> Self::Output {
+impl<const A: usize, const B: usize, const C: usize> Mul<Matrix<B, C, f64>> for Matrix<A, B, f64> {
+    type Output = Matrix<A, C, f64>;
+    fn mul(self, rhs: Matrix<B, C, f64>) -> Self::Output {
         Matrix(core::array::from_fn(|i| {
             core::array::from_fn(|j| {
                 (0..B)
                     .map(|k| self.0[i][k] * rhs.0[k][j])
-                    .fold(T::Output::default(), |acc, val| acc + val)
+                    .fold(0.0, |acc, val| acc + val)
             })
         }))
     }
 }
 
-impl<const N: usize, T> BitXorAssign for SquareMatrix<N, T>
-where
-    Self: BitXor<Output = Self> + Default,
-{
-    fn bitxor_assign(&mut self, rhs: Self) {
+impl<const N: usize> MulAssign for SquareMatrix<N, f64> {
+    fn mul_assign(&mut self, rhs: Self) {
         let owned = std::mem::take(self);
-        *self = owned ^ rhs;
+        *self = owned * rhs;
     }
 }
 
@@ -307,3 +292,79 @@ impl<const N: usize, const M: usize, T> Index<(usize, usize)> for Matrix<N, M, T
         &self.0[index.0][index.1]
     }
 }
+
+impl<const N: usize> SquareMatrix<N, f64> {
+    pub fn solve(&self, b: &Column<N, f64>) -> Result<Column<N, f64>, String> {
+        self.inverse()
+            .map(|inv| inv * *b)
+            .ok_or_else(|| "Matrix is singular".to_string())
+    }
+}
+
+impl<const N: usize, const M: usize> Matrix<N, M, f64> {
+    pub fn zeros() -> Self {
+        Self(array::from_fn(|_| array::from_fn(|_| 0.0)))
+    }
+}
+
+impl<const N: usize> Matrix<N, N, f64> {
+    pub fn block_concat<const M: usize>(&self, a: &Matrix<M, N, f64>) -> Matrix<{ N + M }, { N + M }, f64>
+    where
+        [(); N + M]:,
+    {
+        let mut result = [[0.0; N + M]; N + M];
+        for i in 0..N {
+            for j in 0..N {
+                result[i][j] = self.0[i][j];
+            }
+        }
+        let a_t = a.transpose();
+        for i in 0..N {
+            for j in 0..M {
+                result[i][N + j] = a_t.0[i][j];
+            }
+        }
+        for i in 0..M {
+            for j in 0..N {
+                result[N + i][j] = a.0[i][j];
+            }
+        }
+        Matrix(result)
+    }
+}
+
+impl<const N: usize> Column<N, f64> {
+    pub fn stack<const M: usize>(&self, other: &Column<M, f64>) -> Column<{ N + M }, f64>
+    where
+        [(); N + M]:,
+    {
+        let mut result = [[0.0; 1]; N + M];
+        for i in 0..N {
+            result[i][0] = self.0[i][0];
+        }
+        for i in 0..M {
+            result[N + i][0] = other.0[i][0];
+        }
+        Matrix(result)
+    }
+}
+
+impl<const TOTAL: usize> Column<TOTAL, f64> {
+    pub fn extract_p<const N: usize>(&self) -> Column<N, f64> {
+        let mut result = [[0.0; 1]; N];
+        for i in 0..N {
+            result[i][0] = self.0[i][0];
+        }
+        Matrix(result)
+    }
+
+    pub fn extract_lambda<const M: usize>(&self) -> Column<M, f64> {
+        let mut result = [[0.0; 1]; M];
+        let total = self.0.len();
+        for i in 0..M {
+            result[i][0] = self.0[total - M + i][0];
+        }
+        Matrix(result)
+    }
+}
+
