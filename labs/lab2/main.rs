@@ -60,7 +60,7 @@ fn main() {
     println!("\nMethod: Steepest Gradient Descent");
     let opt_steep1 = SteepestGradientDescent::new(
         0.001,
-        Dichotomy::new(Precision(1e-3)),
+        Dichotomy::new(Precision(1e-5)),
         0.0..2.0,
         Precision(1e-4),
     );
@@ -138,8 +138,8 @@ fn main() {
     println!("\nMethod: Steepest Gradient Descent");
     let opt_steep2 = SteepestGradientDescent::new(
         0.001,
-        Dichotomy::new(Precision(1e-3)),
-        0.0..1e-2,
+        Dichotomy::new(Precision(1e-5)),
+        0.0..2.0,
         Precision(1e-4),
     );
     let result_steep2 = opt_steep2
