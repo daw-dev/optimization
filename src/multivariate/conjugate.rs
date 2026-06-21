@@ -1,6 +1,7 @@
 use crate::{
-    optimizer::TryOptimize,
+    helpers::Precision,
     linalg::{Column, SquareMatrix},
+    optimizer::TryOptimize,
 };
 
 pub struct PerfectQuadraticProblem<const N: usize> {
@@ -8,9 +9,19 @@ pub struct PerfectQuadraticProblem<const N: usize> {
     pub b: Column<N, f64>,
 }
 
-pub struct Conjugate<const N: usize>;
+pub struct Conjugate<const N: usize, S = Precision> {
+    stopping_criterion: S,
+}
 
-impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>> for Conjugate<N> {
+impl<const N: usize, S> Conjugate<N, S> {
+    pub fn new(stopping_criterion: S) -> Self {
+        Self { stopping_criterion }
+    }
+}
+
+impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
+    for Conjugate<N, Precision>
+{
     type Error = String;
 
     fn try_optimize(
@@ -31,7 +42,7 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>> for
             .map(move |_| {
                 let g_norm = (g.transpose() * g).into_value().sqrt();
 
-                if g_norm <= 0.001 {
+                if g_norm <= self.stopping_criterion.0 {
                     return None;
                 }
 
@@ -66,6 +77,7 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>> for
 #[allow(non_snake_case)]
 mod tests {
     use super::*;
+    use crate::helpers::Precision;
     use crate::linalg::Matrix;
 
     #[test]
@@ -73,28 +85,34 @@ mod tests {
         const N: usize = 3;
         let A = Matrix([[4.0, 1.0, 1.0], [1.0, 3.0, 0.0], [1.0, 0.0, 2.0]]);
         let B = Matrix([[1.0], [2.0], [3.0]]);
-        
-        let opt = Conjugate::<N>;
-        let res = opt.try_optimize(
-            PerfectQuadraticProblem { matrix: A.clone(), b: B.clone() },
-            Column::zeros()
-        ).last().unwrap().unwrap();
+
+        let opt = Conjugate::new(Precision(0.001));
+        let res = opt
+            .try_optimize(
+                PerfectQuadraticProblem {
+                    matrix: A.clone(),
+                    b: B.clone(),
+                },
+                Column::zeros(),
+            )
+            .last()
+            .unwrap()
+            .unwrap();
 
         let analytical = A.inverse().unwrap() * B.clone();
-        
+
         // Assert commutative property: scalar * matrix == matrix * scalar
         let B_left = 2.0 * B.clone();
         let B_right = B.clone() * 2.0;
         for i in 0..N {
             assert!((B_left.0[i][0] - B_right.0[i][0]).abs() < 1e-9);
         }
-        
+
         println!("CG: {:?}", res.0);
         println!("Analytical: {:?}", analytical.0);
-        
+
         for i in 0..N {
             assert!((res.0[i][0] - analytical.0[i][0]).abs() < 1e-3);
         }
     }
 }
-

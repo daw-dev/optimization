@@ -1,7 +1,7 @@
 use optimization::{
     helpers::{Iterations, Precision, UniformSample},
-    univariate::{dichotomy::Dichotomy, fibonacci::Fibonacci, golden::GoldenRatio, newton::Newton},
     optimizer::{Optimize, TryOptimize},
+    univariate::{dichotomy::Dichotomy, fibonacci::Fibonacci, golden::GoldenRatio, newton::Newton},
 };
 use plotly::{Plot, Scatter};
 
@@ -15,34 +15,41 @@ fn main() {
 
     let mut plot_ex1 = Plot::new();
     let x_sample = UniformSample::new(1.0..2.0, 100);
-    let scatter = Scatter::new(
-        x_sample.clone().collect(),
-        x_sample.map(func).collect(),
-    )
-    .name("8e^(1-x) + 7ln(x)");
+    let scatter = Scatter::new(x_sample.clone().collect(), x_sample.map(func).collect())
+        .name("8e^(1-x) + 7ln(x)");
     plot_ex1.add_trace(scatter);
 
     let iter_dich = Dichotomy::<()>::iterations_from_precision(0.23, &(1.0..2.0));
-    println!("Dichotomy: {} iterations needed for uncertainty 0.23", iter_dich);
+    println!(
+        "Dichotomy: {} iterations needed for uncertainty 0.23",
+        iter_dich
+    );
     let opt_dich = Dichotomy::new(Iterations(iter_dich));
     let min_dich = opt_dich.try_solution(&func, 1.0..2.0);
     println!("  Minimizer: {:?}", min_dich);
 
     let iter_gold = GoldenRatio::<()>::iterations_from_precision(0.23, &(1.0..2.0));
-    println!("Golden Section: {} iterations needed for uncertainty 0.23", iter_gold);
+    println!(
+        "Golden Section: {} iterations needed for uncertainty 0.23",
+        iter_gold
+    );
     let opt_gold = GoldenRatio::new(Iterations(iter_gold));
     let min_gold = opt_gold.try_solution(&func, 1.0..2.0);
     println!("  Minimizer: {:?}", min_gold);
 
     const N: usize = 4;
-    println!("Fibonacci (n = {}): precision is {}", N, Fibonacci::<N>::GAMMAS.iter().product::<f64>());
+    println!(
+        "Fibonacci (n = {}): precision is {}",
+        N,
+        Fibonacci::<N>::GAMMAS.iter().product::<f64>()
+    );
     let opt_fib = Fibonacci::<N>;
     let min_fib = opt_fib.try_solution(&func, 1.0..2.0);
     println!("  Minimizer: {:?}", min_fib);
 
     println!("\n--- Exercise 1 (Part 4): Unimodal Test Function ---");
     let func_unimodal = |x: f64| x.powi(4) - 3.0 * x.powi(2) + x + 1.0;
-    
+
     let mut plot_ex1_part4 = Plot::new();
     let x_sample_unimodal = UniformSample::new(-1.0..3.0, 100);
     let scatter_unimodal = Scatter::new(
@@ -80,13 +87,23 @@ fn main() {
     let opt_newton_ex3 = Newton::new(Precision(1e-5), 0.001);
 
     println!("Case 1: interval [0.0, 0.5], x0 = 0.25");
-    println!("  Dichotomy: {:?}", opt_dich_ex3.try_solution(&func_atan, 0.0..0.5));
+    println!(
+        "  Dichotomy: {:?}",
+        opt_dich_ex3.try_solution(&func_atan, 0.0..0.5)
+    );
     println!("  Newton: {:?}", opt_newton_ex3.solution(&func_atan, 0.25));
 
     println!("Case 2: interval [0.0, 3.0], x0 = 1.5");
-    println!("  Dichotomy: {:?}", opt_dich_ex3.try_solution(&func_atan, 0.0..3.0));
+    println!(
+        "  Dichotomy: {:?}",
+        opt_dich_ex3.try_solution(&func_atan, 0.0..3.0)
+    );
     println!("  Newton (first 10 steps):");
-    for (i, guess) in opt_newton_ex3.optimize(&func_atan, 1.5).take(10).enumerate() {
+    for (i, guess) in opt_newton_ex3
+        .optimize(&func_atan, 1.5)
+        .take(10)
+        .enumerate()
+    {
         println!("    Step {}: {}", i, guess);
     }
     println!("  Newton diverges!");

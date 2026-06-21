@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use optimization::{
+    helpers::Precision,
     linalg::{Column, SquareMatrix},
     multivariate::conjugate::{Conjugate, PerfectQuadraticProblem},
     optimizer::TryOptimize,
@@ -33,8 +34,12 @@ pub fn main() {
 
     let start_guess = Column::randomized(0.0..2.0);
     let mut x = start_guess.clone();
-    let guesses_iter = Conjugate.try_optimize(
-        PerfectQuadraticProblem { matrix: A.clone(), b: B.clone() },
+    let opt = Conjugate::new(Precision(0.001));
+    let guesses_iter = opt.try_optimize(
+        PerfectQuadraticProblem {
+            matrix: A.clone(),
+            b: B.clone(),
+        },
         start_guess.clone(),
     );
 
@@ -101,39 +106,39 @@ pub fn main() {
 
     // Conjugate Gradient with stopping criterion ||grad|| <= 10^-8
     let mut x2 = Column::<N2, f64>::zeros();
-    let qx = A2 * x2.clone();
-    let mut g = qx - B2.clone();
-    let mut d = -g.clone();
 
     let mut steps_ex2 = Vec::new();
     let mut errors_ex2 = Vec::new();
 
+    // Step 0 error (initial guess)
+    let diff0 = x2.clone() - x_th2.clone();
+    errors_ex2.push((diff0.transpose() * diff0).into_value().sqrt().log10());
+    steps_ex2.push(0.0);
+
+    let opt2 = Conjugate::new(Precision(1e-8));
+    let guesses_iter2 = opt2.try_optimize(
+        PerfectQuadraticProblem {
+            matrix: A2.clone(),
+            b: B2.clone(),
+        },
+        x2.clone(),
+    );
+
     let mut steps2 = 0;
-    for step in 0..N2 {
-        let diff = x2.clone() - x_th2.clone();
-        let err_norm = (diff.transpose() * diff).into_value().sqrt();
-        steps_ex2.push(step as f64);
-        errors_ex2.push(err_norm.log10());
-
-        let g_norm = (g.transpose() * g.clone()).into_value().sqrt();
-        if g_norm <= 1e-8 {
-            break;
+    for (i, guess_res) in guesses_iter2.enumerate() {
+        match guess_res {
+            Ok(g) => {
+                x2 = g;
+                let diff = x2.clone() - x_th2.clone();
+                errors_ex2.push((diff.transpose() * diff).into_value().sqrt().log10());
+                steps_ex2.push((i + 1) as f64);
+                steps2 = i + 1;
+            }
+            Err(err) => {
+                println!("  CG Error: {err}");
+                break;
+            }
         }
-
-        let qd = A2 * d.clone();
-        let den = (d.transpose() * qd.clone()).into_value();
-        if den.abs() < f64::EPSILON {
-            break;
-        }
-
-        let alpha = -(g.transpose() * d.clone()).into_value() / den;
-        x2 = x2 + d.clone() * alpha;
-
-        let g_next = g.clone() + qd * alpha;
-        let beta = (g_next.transpose() * qd).into_value() / den;
-        d = -g_next.clone() + d * beta;
-        g = g_next;
-        steps2 = step + 1;
     }
 
     println!("Conjugate Gradient Solver (||grad|| <= 10^-8):");

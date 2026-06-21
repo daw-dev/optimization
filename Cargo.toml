@@ -30,4 +30,8 @@ path = "labs/lab4/main.rs"
 name = "lab5"
 path = "labs/lab5/main.rs"
 
+[[example]]
+name = "lab6"
+path = "labs/lab6/main.rs"
+
 

@@ -1,7 +1,7 @@
 use rand::RngExt;
 
-use crate::optimizer::TryOptimize;
 use crate::linalg::Column;
+use crate::optimizer::TryOptimize;
 
 pub struct RealGAProblem<F> {
     pub objective: F,
@@ -20,13 +20,17 @@ pub struct GAStep<const N: usize> {
 impl<const N: usize> GAStep<N> {
     pub fn new(pop_size: usize, bounds_min: f64, bounds_max: f64) -> Self {
         let mut rng = rand::rng();
-        let size = if pop_size % 2 != 0 { pop_size + 1 } else { pop_size };
-        
+        let size = if pop_size % 2 != 0 {
+            pop_size + 1
+        } else {
+            pop_size
+        };
+
         let mut population = Vec::with_capacity(size);
         for _ in 0..size {
-            let mut ind = Column::default(); 
+            let mut ind = Column::default();
             for j in 0..N {
-                ind[(0, j)] = bounds_min + (bounds_max - bounds_min) * rng.random::<f64>(); 
+                ind[(0, j)] = bounds_min + (bounds_max - bounds_min) * rng.random::<f64>();
             }
             population.push(ind);
         }
@@ -34,7 +38,7 @@ impl<const N: usize> GAStep<N> {
         Self {
             population,
             best_x: None,
-            best_f: f64::INFINITY, 
+            best_f: f64::INFINITY,
         }
     }
 }

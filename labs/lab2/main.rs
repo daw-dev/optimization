@@ -2,9 +2,9 @@ use itertools::Itertools;
 use optimization::{
     function::Function,
     helpers::{Precision, UniformSample},
-    univariate::dichotomy::Dichotomy,
     multivariate::gradient::{FixedStepGradientDescent, SteepestGradientDescent},
     optimizer::{Optimize, TryOptimize},
+    univariate::dichotomy::Dichotomy,
 };
 use plotly::{Layout, Plot, Scatter3D, Surface, color::NamedColor, common::Marker};
 
@@ -47,11 +47,18 @@ fn main() {
     println!("  Steps:          {}", guesses_fixed1.len());
     println!("  Convergence:    Success");
 
-    let (x1s_f1, x2s_f1) = guesses_fixed1.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+    let (x1s_f1, x2s_f1) = guesses_fixed1
+        .iter()
+        .cloned()
+        .map(|[x1, x2]| (x1, x2))
+        .unzip();
     let scatter_fixed1 = Scatter3D::new(
         x1s_f1,
         x2s_f1,
-        guesses_fixed1.iter().map(|point| func1.compute(*point)).collect(),
+        guesses_fixed1
+            .iter()
+            .map(|point| func1.compute(*point))
+            .collect(),
     )
     .marker(Marker::new().size(3))
     .name("Fixed Step Path");
@@ -75,11 +82,18 @@ fn main() {
             println!("  Steps:          {}", guesses_steep1.len());
             println!("  Convergence:    Success");
 
-            let (x1s_s1, x2s_s1) = guesses_steep1.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+            let (x1s_s1, x2s_s1) = guesses_steep1
+                .iter()
+                .cloned()
+                .map(|[x1, x2]| (x1, x2))
+                .unzip();
             let scatter_steep1 = Scatter3D::new(
                 x1s_s1,
                 x2s_s1,
-                guesses_steep1.iter().map(|point| func1.compute(*point)).collect(),
+                guesses_steep1
+                    .iter()
+                    .map(|point| func1.compute(*point))
+                    .collect(),
             )
             .marker(Marker::new().size(3))
             .surface_color(NamedColor::Lime)
@@ -125,11 +139,18 @@ fn main() {
     println!("  Steps:          {}", guesses_fixed2.len());
     println!("  Convergence:    Success");
 
-    let (x1s_f2, x2s_f2) = guesses_fixed2.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+    let (x1s_f2, x2s_f2) = guesses_fixed2
+        .iter()
+        .cloned()
+        .map(|[x1, x2]| (x1, x2))
+        .unzip();
     let scatter_fixed2 = Scatter3D::new(
         x1s_f2,
         x2s_f2,
-        guesses_fixed2.iter().map(|point| func2.compute(*point)).collect(),
+        guesses_fixed2
+            .iter()
+            .map(|point| func2.compute(*point))
+            .collect(),
     )
     .marker(Marker::new().size(3))
     .name("Fixed Step Path");
@@ -153,11 +174,18 @@ fn main() {
             println!("  Steps:          {}", guesses_steep2.len());
             println!("  Convergence:    Success");
 
-            let (x1s_s2, x2s_s2) = guesses_steep2.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+            let (x1s_s2, x2s_s2) = guesses_steep2
+                .iter()
+                .cloned()
+                .map(|[x1, x2]| (x1, x2))
+                .unzip();
             let scatter_steep2 = Scatter3D::new(
                 x1s_s2,
                 x2s_s2,
-                guesses_steep2.iter().map(|point| func2.compute(*point)).collect(),
+                guesses_steep2
+                    .iter()
+                    .map(|point| func2.compute(*point))
+                    .collect(),
             )
             .marker(Marker::new().size(3))
             .surface_color(NamedColor::Lime)
@@ -200,8 +228,14 @@ fn main() {
         let opt_fixed3 = FixedStepGradientDescent::new(0.001, step, Precision(1e-4));
         let guesses_fixed3 = opt_fixed3.optimize(&func3, [-1.8, 2.0]).collect_vec();
 
-        let is_diverged = guesses_fixed3.iter().any(|g| g[0].is_nan() || g[0].is_infinite() || g[0].abs() > 1e6);
-        let status = if is_diverged { "Diverged (or truncated)" } else { "Success" };
+        let is_diverged = guesses_fixed3
+            .iter()
+            .any(|g| g[0].is_nan() || g[0].is_infinite() || g[0].abs() > 1e6);
+        let status = if is_diverged {
+            "Diverged (or truncated)"
+        } else {
+            "Success"
+        };
 
         println!("  Step Size: {}", step);
         println!("    Final Guess: {:.5?}", guesses_fixed3.last().unwrap());
@@ -216,11 +250,18 @@ fn main() {
             .collect();
 
         if !plot_guesses.is_empty() {
-            let (x1s_f3, x2s_f3) = plot_guesses.iter().cloned().map(|[x1, x2]| (x1, x2)).unzip();
+            let (x1s_f3, x2s_f3) = plot_guesses
+                .iter()
+                .cloned()
+                .map(|[x1, x2]| (x1, x2))
+                .unzip();
             let scatter_fixed3 = Scatter3D::new(
                 x1s_f3,
                 x2s_f3,
-                plot_guesses.iter().map(|point| func3.compute(*point)).collect(),
+                plot_guesses
+                    .iter()
+                    .map(|point| func3.compute(*point))
+                    .collect(),
             )
             .marker(Marker::new().size(2))
             .name(&format!("Step size {}", step));

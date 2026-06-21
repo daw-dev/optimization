@@ -35,31 +35,29 @@ where
     }
 }
 
-pub trait Derivative<X>: Function<X, X> {
-    fn derivative(&self, difference: X) -> impl Function<X, X>;
+pub trait Differentiate<'a, Point, X> {
+    type Result;
+    fn differentiate(&'a self, difference: X) -> Self::Result;
 }
 
-impl<F> Derivative<f64> for F
+impl<'a, F> Differentiate<'a, f64, f64> for F
 where
-    F: Function<f64, f64>,
+    F: Function<f64, f64> + 'a,
 {
-    fn derivative(&self, difference: f64) -> impl Function<f64, f64> {
-        move |x| (self.compute(x + difference) - self.compute(x - difference)) / difference / 2.0
+    type Result = Box<dyn Function<f64, f64> + 'a>;
+    fn differentiate(&'a self, difference: f64) -> Self::Result {
+        Box::new(move |x| {
+            (self.compute(x + difference) - self.compute(x - difference)) / difference / 2.0
+        })
     }
 }
 
-pub trait Gradient<'a, const N: usize, X>: Function<[X; N], X> {
-    type Result: Function<[X; N], [X; N]> + 'a;
-
-    fn gradient(&'a self, difference: X) -> Self::Result;
-}
-
-impl<'a, const N: usize, F> Gradient<'a, N, f64> for F
+impl<'a, const N: usize, F> Differentiate<'a, [f64; N], f64> for F
 where
-    F: Function<[f64; N], f64>,
+    F: Function<[f64; N], f64> + 'a,
 {
     type Result = [Box<dyn Function<[f64; N], f64> + 'a>; N];
-    fn gradient(&'a self, difference: f64) -> Self::Result {
+    fn differentiate(&'a self, difference: f64) -> Self::Result {
         array::from_fn(|i| {
             Box::new(move |point: [f64; N]| -> f64 {
                 (|x: f64| {
@@ -67,10 +65,20 @@ where
                     point[i] = x;
                     self.compute(point)
                 })
-                .derivative(difference)
+                .differentiate(difference)
                 .compute(point[i])
             }) as Box<dyn Function<[f64; N], f64> + '_>
         })
+    }
+}
+
+impl<'a, const N: usize, F, Point> Differentiate<'a, Point, f64> for [F; N]
+where
+    F: Differentiate<'a, Point, f64> + 'a,
+{
+    type Result = [F::Result; N];
+    fn differentiate(&'a self, difference: f64) -> Self::Result {
+        array::from_fn(|i| self[i].differentiate(difference))
     }
 }
 
@@ -87,7 +95,7 @@ where
     type Result = Box<dyn Function<[f64; N], [[f64; N]; N]> + 'a>;
 
     fn hessian(&'a self, difference: f64) -> Self::Result {
-        let grad = self.gradient(difference);
+        let grad = self.differentiate(difference);
 
         Box::new(move |point: [f64; N]| -> [[f64; N]; N] {
             array::from_fn(|i| {
@@ -98,7 +106,7 @@ where
                         p[j] = x;
                         grad_i.compute(p)
                     })
-                    .derivative(difference)
+                    .differentiate(difference)
                     .compute(point[j])
                 })
             })

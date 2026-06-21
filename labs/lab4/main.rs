@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use optimization::{
+    function::{Differentiate, Function, Hessian},
     helpers::{Precision, UniformSample},
-    optimizer::Optimize,
-    linalg::{SquareMatrix, Column, Matrix},
+    linalg::{Column, Matrix, SquareMatrix},
     multivariate::newton::NewtonRaphson,
-    function::{Gradient, Hessian, Function},
+    optimizer::Optimize,
 };
 use plotly::{Plot, Scatter3D, Surface, color::NamedColor, common::Marker};
 
@@ -17,7 +17,8 @@ fn main() {
     // Exercise 1
     // -------------------------------------------------------------------------
     println!("\n--- Exercise 1: Newton-Raphson ---");
-    let func_ex1 = |[x1, x2]: [f64; 2]| x1.powi(2) + 2.0 * x2.powi(2) + 0.2 * x1.powi(2) * x2.powi(4);
+    let func_ex1 =
+        |[x1, x2]: [f64; 2]| x1.powi(2) + 2.0 * x2.powi(2) + 0.2 * x1.powi(2) * x2.powi(4);
     let optimizer = NewtonRaphson::new(Precision(1e-5), 0.01);
 
     let guesses_ex1 = optimizer.optimize(&func_ex1, [0.0, 1.0]).collect_vec();
@@ -52,7 +53,10 @@ fn main() {
     let scatter_ex1 = Scatter3D::new(
         x1s_ex1,
         x2s_ex1,
-        guesses_ex1.iter().map(|point| func_ex1.compute(*point)).collect(),
+        guesses_ex1
+            .iter()
+            .map(|point| func_ex1.compute(*point))
+            .collect(),
     )
     .marker(Marker::new().size(3))
     .surface_color(NamedColor::Lime)
@@ -64,8 +68,7 @@ fn main() {
     // -------------------------------------------------------------------------
     println!("\n--- Exercise 2: Newton vs Levenberg-Marquardt ---");
     let func_ex2 = |[x1, x2]: [f64; 2]| {
-        (-x1.powi(2) - x2.powi(2)).exp()
-            * (1.5 * x2 - 2.0 * x1.powi(2) - x1.powi(3) + x1.powi(4))
+        (-x1.powi(2) - x2.powi(2)).exp() * (1.5 * x2 - 2.0 * x1.powi(2) - x1.powi(3) + x1.powi(4))
     };
 
     // 1. Verify that x* = (0.790806, -0.387505) is a local minimum
@@ -87,13 +90,19 @@ fn main() {
     let disc = (trace * trace - 4.0 * det).sqrt();
     let lambda1 = (trace + disc) / 2.0;
     let lambda2 = (trace - disc) / 2.0;
-    println!("  Eigenvalues of Hessian: {:.5} and {:.5}", lambda1, lambda2);
+    println!(
+        "  Eigenvalues of Hessian: {:.5} and {:.5}",
+        lambda1, lambda2
+    );
     if lambda1 > 0.0 && lambda2 > 0.0 {
         println!("  Necessary conditions satisfied (Hessian is positive definite).");
     }
 
     // 2. Standard Newton-Raphson starting at (1, 1)
-    let guesses_std = optimizer.optimize(&func_ex2, [1.0, 1.0]).take(20).collect_vec();
+    let guesses_std = optimizer
+        .optimize(&func_ex2, [1.0, 1.0])
+        .take(20)
+        .collect_vec();
     println!("\nMethod: Standard Newton-Raphson");
     println!("  Starting Guess: [1.0, 1.0]");
     println!("  Steps 0-4:");
@@ -107,7 +116,7 @@ fn main() {
     // 3. Levenberg-Marquardt Newton-Raphson starting at (1, 1)
     let mut guess = [1.0, 1.0];
     let mut lm_guesses = vec![guess];
-    let grad_fn = func_ex2.gradient(0.0001);
+    let grad_fn = func_ex2.differentiate(0.0001);
     let mut mu = 0.5; // damping parameter
     let mut lm_steps = 0;
 
@@ -127,7 +136,7 @@ fn main() {
         if let Some(inv) = Matrix(fk_lm).inverse() {
             let dk = -(inv * Column::new_column(gk));
             let next_guess = (Column::new_column(guess) + dk).into_column();
-            
+
             if func_ex2.compute(next_guess) < func_ex2.compute(guess) {
                 guess = next_guess;
                 lm_guesses.push(guess);
@@ -170,7 +179,10 @@ fn main() {
     let scatter_std = Scatter3D::new(
         x1s_std,
         x2s_std,
-        guesses_std.iter().map(|point| func_ex2.compute(*point)).collect(),
+        guesses_std
+            .iter()
+            .map(|point| func_ex2.compute(*point))
+            .collect(),
     )
     .marker(Marker::new().size(3))
     .name("Standard NR Path");
@@ -180,7 +192,10 @@ fn main() {
     let scatter_lm = Scatter3D::new(
         x1s_lm,
         x2s_lm,
-        lm_guesses.iter().map(|point| func_ex2.compute(*point)).collect(),
+        lm_guesses
+            .iter()
+            .map(|point| func_ex2.compute(*point))
+            .collect(),
     )
     .marker(Marker::new().size(3))
     .surface_color(NamedColor::Lime)
@@ -202,7 +217,7 @@ fn main() {
     println!("Running BFGS starting at (1, -1.2, 1, -1.2, 1, -1.2)...");
     let mut x0 = Column::<6, f64>::new_column([1.0, -1.2, 1.0, -1.2, 1.0, -1.2]);
     let mut h = SquareMatrix::<6, f64>::identity();
-    let grad_fn_ros = rosenbrock.gradient(0.0001);
+    let grad_fn_ros = rosenbrock.differentiate(0.0001);
     let mut g = Column::new_column(grad_fn_ros.compute(x0.into_column()));
 
     let mut bfgs_steps = 0;
@@ -250,7 +265,7 @@ fn main() {
         g = gp;
         bfgs_steps = step;
     }
-    
+
     println!("Method: BFGS Quasi-Newton (n=6)");
     println!("  Starting Guess:   [1.0, -1.2, 1.0, -1.2, 1.0, -1.2]");
     println!("  Final Estimate:   {:.5?}", x0.into_column());

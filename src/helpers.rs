@@ -153,4 +153,3 @@ pub fn save_dashboard<P: AsRef<std::path::Path>>(
 
     Ok(())
 }
-

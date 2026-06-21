@@ -2,9 +2,9 @@
 #![allow(incomplete_features)]
 
 use optimization::{
+    helpers::Iterations,
     linalg::{Column, Matrix, Row},
     multivariate::simplex::{AugmentedLP, LinearProgram, PermutedLP, Simplex, SimplexGuess},
-    helpers::Iterations,
     optimizer::TryOptimize,
 };
 use plotly::{Plot, Scatter};
@@ -49,7 +49,10 @@ fn main() {
         is_optimal: false,
     };
 
-    println!("Starting basis indices (0-indexed): {:?}", start_guess1.base_idx);
+    println!(
+        "Starting basis indices (0-indexed): {:?}",
+        start_guess1.base_idx
+    );
 
     let mut steps_ex1 = Vec::new();
     let mut costs_ex1 = Vec::new();
@@ -62,7 +65,13 @@ fn main() {
                 let cost = (problem1.c() * guess.x.clone()).into_value();
                 steps_ex1.push(step as f64);
                 costs_ex1.push(cost);
-                println!("  Iteration {}: basis={:?}, cost={:.2}, x={:.2?}", step, guess.base_idx, cost, guess.x.clone().into_column());
+                println!(
+                    "  Iteration {}: basis={:?}, cost={:.2}, x={:.2?}",
+                    step,
+                    guess.base_idx,
+                    cost,
+                    guess.x.clone().into_column()
+                );
                 step += 1;
                 last_guess1 = Some(guess);
             }
@@ -77,11 +86,21 @@ fn main() {
     let final_cost1 = (problem1.c() * final_guess1.x.clone()).into_value();
 
     println!("\nMethod: Standard Simplex Solver");
-    println!("  Starting Guess: Zeros (basis: {:?})", start_guess1.base_idx);
+    println!(
+        "  Starting Guess: Zeros (basis: {:?})",
+        start_guess1.base_idx
+    );
     println!("  Final Estimate: {:.5?}", final_guess1.x.into_column());
     println!("  Optimal Cost:   {:.5}", final_cost1);
     println!("  Steps:          {}", step);
-    println!("  Convergence:    {}", if final_guess1.is_optimal { "Success" } else { "Failed" });
+    println!(
+        "  Convergence:    {}",
+        if final_guess1.is_optimal {
+            "Success"
+        } else {
+            "Failed"
+        }
+    );
 
     // Create Plot 1
     let mut plot1 = Plot::new();
@@ -138,7 +157,13 @@ fn main() {
                 }
                 steps_p1.push(step_p1 as f64);
                 costs_p1.push(virtual_cost);
-                println!("  Phase 1 Iteration {}: basis={:?}, virtual_cost={:.4}, x={:.2?}", step_p1, guess.base_idx, virtual_cost, guess.x.clone().into_column());
+                println!(
+                    "  Phase 1 Iteration {}: basis={:?}, virtual_cost={:.4}, x={:.2?}",
+                    step_p1,
+                    guess.base_idx,
+                    virtual_cost,
+                    guess.x.clone().into_column()
+                );
                 step_p1 += 1;
                 last_guess_p1 = Some(guess);
             }
@@ -156,14 +181,23 @@ fn main() {
     }
 
     if final_virtual_cost > 1e-6 {
-        println!("Phase 1 terminated with positive virtual cost: {:.4}. Original LP is infeasible.", final_virtual_cost);
+        println!(
+            "Phase 1 terminated with positive virtual cost: {:.4}. Original LP is infeasible.",
+            final_virtual_cost
+        );
         return;
     } else {
-        println!("Phase 1 optimal virtual cost is {:.4}. A Basic Feasible Solution is found!", final_virtual_cost);
+        println!(
+            "Phase 1 optimal virtual cost is {:.4}. A Basic Feasible Solution is found!",
+            final_virtual_cost
+        );
     }
 
     println!("\n>> Phase 2: Solve permuted system using BFS from Phase 1 <<");
-    println!("Final Phase 1 basis indices (in augmented system): {:?}", final_guess_p1.base_idx);
+    println!(
+        "Final Phase 1 basis indices (in augmented system): {:?}",
+        final_guess_p1.base_idx
+    );
 
     let permuted_lp = PermutedLP::new(&a, &b, &c, &final_guess_p1.base_idx)
         .expect("Failed to perform coordinate change and permute LP");
@@ -172,7 +206,10 @@ fn main() {
     println!("{}", permuted_lp.a_perm);
     println!("Permuted vector b_perm:");
     println!("{}", permuted_lp.b_perm);
-    println!("Permutation mapping (indices map to original variables): {:?}", permuted_lp.perm);
+    println!(
+        "Permutation mapping (indices map to original variables): {:?}",
+        permuted_lp.perm
+    );
 
     let start_guess_p2 = SimplexGuess {
         base_idx: [0, 1, 2], // First C columns are identity in permuted system
@@ -191,7 +228,13 @@ fn main() {
                 let cost = (permuted_lp.c_perm * guess.x.clone()).into_value();
                 steps_p2.push(step_p2 as f64);
                 costs_p2.push(cost);
-                println!("  Phase 2 Iteration {}: basis={:?}, cost={:.4}, x={:.2?}", step_p2, guess.base_idx, cost, guess.x.clone().into_column());
+                println!(
+                    "  Phase 2 Iteration {}: basis={:?}, cost={:.4}, x={:.2?}",
+                    step_p2,
+                    guess.base_idx,
+                    cost,
+                    guess.x.clone().into_column()
+                );
                 step_p2 += 1;
                 last_guess_p2 = Some(guess);
             }
@@ -217,7 +260,14 @@ fn main() {
     println!("  Optimal Cost:                   {:.5}", final_cost_ex2);
     println!("  Phase 1 Steps:                  {}", step_p1);
     println!("  Phase 2 Steps:                  {}", step_p2);
-    println!("  Convergence:                    {}", if final_guess_p2.is_optimal { "Success" } else { "Failed" });
+    println!(
+        "  Convergence:                    {}",
+        if final_guess_p2.is_optimal {
+            "Success"
+        } else {
+            "Failed"
+        }
+    );
 
     // Create Plots for Phase 1 & 2
     let mut plot2 = Plot::new();

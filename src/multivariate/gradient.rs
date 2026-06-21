@@ -1,5 +1,5 @@
 use crate::{
-    function::{Function, Gradient},
+    function::{Differentiate, Function},
     helpers::{Iterations, Precision},
     optimizer::{Optimize, TryOptimize},
 };
@@ -28,7 +28,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
         let mut guess = starting_guess;
 
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
-            let gradient = func.gradient(self.gradient_precision);
+            let gradient = func.differentiate(self.gradient_precision);
             let computed = gradient.compute(guess);
             let norm: f64 = computed.iter().map(|x| x * x).sum();
             if norm < self.stopping_criterion.0.powi(2) {
@@ -50,7 +50,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
         let mut guess = starting_guess;
 
         std::iter::once(starting_guess).chain((1..self.stopping_criterion.0).map(move |_| {
-            let gradient = func.gradient(self.gradient_precision);
+            let gradient = func.differentiate(self.gradient_precision);
             let computed = gradient.compute(guess);
             for i in 0..N {
                 guess[i] = guess[i] - self.step * computed[i];
@@ -96,7 +96,7 @@ where
         starting_guess: [f64; N],
     ) -> impl Iterator<Item = Result<[f64; N], Self::Error>> {
         let mut guess = starting_guess;
-        let gradient = func.gradient(self.gradient_precision);
+        let gradient = func.differentiate(self.gradient_precision);
         std::iter::once(Ok(starting_guess)).chain(std::iter::from_fn(move || {
             let computed = gradient.compute(guess);
             let norm: f64 = computed.iter().map(|x| x * x).sum();
@@ -130,8 +130,8 @@ where
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
-        
-        let gradient = func.gradient(self.gradient_precision);
+
+        let gradient = func.differentiate(self.gradient_precision);
 
         let sqr_prec = self.stopping_criterion.0.powi(2);
 

@@ -301,7 +301,10 @@ impl<const N: usize, const M: usize> Matrix<N, M, f64> {
 }
 
 impl<const N: usize> Matrix<N, N, f64> {
-    pub fn block_concat<const M: usize>(&self, a: &Matrix<M, N, f64>) -> Matrix<{ N + M }, { N + M }, f64>
+    pub fn block_concat<const M: usize>(
+        &self,
+        a: &Matrix<M, N, f64>,
+    ) -> Matrix<{ N + M }, { N + M }, f64>
     where
         [(); N + M]:,
     {

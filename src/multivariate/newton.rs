@@ -1,8 +1,8 @@
 use crate::{
-    function::{Function, Gradient, Hessian},
+    function::{Differentiate, Function, Hessian},
     helpers::{Iterations, Precision},
-    optimizer::Optimize,
     linalg::{Column, Matrix},
+    optimizer::Optimize,
 };
 
 pub struct NewtonRaphson<S> {
@@ -25,7 +25,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain((0..self.stopping_condition.0).map(move |_| {
-            let gradient = func.gradient(self.difference);
+            let gradient = func.differentiate(self.difference);
             let hessian = func.hessian(self.difference);
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);
@@ -43,7 +43,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
-            let gradient = func.gradient(self.difference);
+            let gradient = func.differentiate(self.difference);
             let hessian = func.hessian(self.difference);
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);

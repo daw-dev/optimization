@@ -56,7 +56,11 @@ pub trait TryOptimize<Problem, StartingGuess, Step = StartingGuess> {
             })
     }
 
-    fn try_solution(&self, problem: Problem, starting_guess: StartingGuess) -> Result<Step, Self::Error>
+    fn try_solution(
+        &self,
+        problem: Problem,
+        starting_guess: StartingGuess,
+    ) -> Result<Step, Self::Error>
     where
         StartingGuess: Clone,
         Step: From<StartingGuess>,
