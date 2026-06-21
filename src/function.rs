@@ -81,35 +81,3 @@ where
         array::from_fn(|i| self[i].differentiate(difference))
     }
 }
-
-pub trait Hessian<'a, const N: usize, X> {
-    type Result: Function<[X; N], [[X; N]; N]> + 'a;
-
-    fn hessian(&'a self, difference: X) -> Self::Result;
-}
-
-impl<'a, const N: usize, F> Hessian<'a, N, f64> for &'a F
-where
-    F: Function<[f64; N], f64> + 'a,
-{
-    type Result = Box<dyn Function<[f64; N], [[f64; N]; N]> + 'a>;
-
-    fn hessian(&'a self, difference: f64) -> Self::Result {
-        let grad = self.differentiate(difference);
-
-        Box::new(move |point: [f64; N]| -> [[f64; N]; N] {
-            array::from_fn(|i| {
-                let grad_i = &grad[i];
-                array::from_fn(|j| {
-                    (|x: f64| {
-                        let mut p = point;
-                        p[j] = x;
-                        grad_i.compute(p)
-                    })
-                    .differentiate(difference)
-                    .compute(point[j])
-                })
-            })
-        })
-    }
-}

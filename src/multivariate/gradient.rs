@@ -26,9 +26,9 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
 {
     fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
+        let gradient = func.differentiate(self.gradient_precision);
 
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
-            let gradient = func.differentiate(self.gradient_precision);
             let computed = gradient.compute(guess);
             let norm: f64 = computed.iter().map(|x| x * x).sum();
             if norm < self.stopping_criterion.0.powi(2) {

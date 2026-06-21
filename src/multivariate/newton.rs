@@ -1,5 +1,5 @@
 use crate::{
-    function::{Differentiate, Function, Hessian},
+    function::{Differentiate, Function},
     helpers::{Iterations, Precision},
     linalg::{Column, Matrix},
     optimizer::Optimize,
@@ -19,14 +19,14 @@ impl<S> NewtonRaphson<S> {
     }
 }
 
-impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for NewtonRaphson<Iterations>
 {
-    fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain((0..self.stopping_condition.0).map(move |_| {
             let gradient = func.differentiate(self.difference);
-            let hessian = func.hessian(self.difference);
+            let hessian = gradient.differentiate(self.difference);
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);
             guess = (Column::new_column(guess)
@@ -37,14 +37,14 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
     }
 }
 
-impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [f64; N]>
+impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for NewtonRaphson<Precision>
 {
-    fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
             let gradient = func.differentiate(self.difference);
-            let hessian = func.hessian(self.difference);
+            let hessian = gradient.differentiate(self.difference);
             let gk = gradient.compute(guess);
             let fk = hessian.compute(guess);
             let next_guess = (Column::new_column(guess)

@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use optimization::{
-    function::{Differentiate, Function, Hessian},
+    function::{Differentiate, Function},
     helpers::{Precision, UniformSample},
     linalg::{Column, Matrix, SquareMatrix},
     multivariate::newton::NewtonRaphson,
@@ -74,7 +74,8 @@ fn main() {
     // 1. Verify that x* = (0.790806, -0.387505) is a local minimum
     let x_star = [0.790806, -0.387505];
     let func_ref = &func_ex2;
-    let hess_fn = func_ref.hessian(0.0001);
+    let grad_fn = func_ref.differentiate(0.0001);
+    let hess_fn = grad_fn.differentiate(0.0001);
     let h_val = hess_fn.compute(x_star);
     println!("Verification at x* = {:?}:", x_star);
     println!("  Hessian:");
