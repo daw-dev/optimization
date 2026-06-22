@@ -19,7 +19,6 @@ impl<S> Simplex<S> {
     }
 }
 
-/// Exposes the static LP matrices using the const-generic Matrix types.
 pub trait LinearProgram<const V: usize, const C: usize> {
     fn a(&self) -> Matrix<C, V, f64>;
     fn b(&self) -> Column<C, f64>;

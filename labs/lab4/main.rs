@@ -2,8 +2,10 @@ use itertools::Itertools;
 use optimization::{
     function::{Differentiate, Function},
     helpers::{Precision, UniformSample},
-    linalg::{Column, Matrix, SquareMatrix},
-    multivariate::newton::NewtonRaphson,
+    multivariate::{
+        newton::{LevenbergMarquardt, NewtonRaphson},
+        quasi_newton::Bfgs,
+    },
     optimizer::Optimize,
 };
 use plotly::{Plot, Scatter3D, Surface, color::NamedColor, common::Marker};
@@ -115,45 +117,14 @@ fn main() {
     println!("  Convergence:    Diverged (or converged to another local extremum)");
 
     // 3. Levenberg-Marquardt Newton-Raphson starting at (1, 1)
-    let mut guess = [1.0, 1.0];
-    let mut lm_guesses = vec![guess];
-    let grad_fn = func_ex2.differentiate(0.0001);
-    let mut mu = 0.5; // damping parameter
-    let mut lm_steps = 0;
+    let lm_optimizer = LevenbergMarquardt::new(Precision(1e-5), 0.0001, 0.5);
+    let lm_guesses = lm_optimizer.optimize(&func_ex2, [1.0, 1.0]).collect_vec();
+    let lm_final = *lm_guesses.last().unwrap();
 
-    for step in 1..=100 {
-        let gk = grad_fn.compute(guess);
-        let gk_norm = gk.iter().map(|x| x * x).sum::<f64>().sqrt();
-        if gk_norm < 1e-5 {
-            lm_steps = step;
-            break;
-        }
-
-        let fk = hess_fn.compute(guess);
-        let mut fk_lm = fk;
-        fk_lm[0][0] += mu;
-        fk_lm[1][1] += mu;
-
-        if let Some(inv) = Matrix(fk_lm).inverse() {
-            let dk = -(inv * Column::new_column(gk));
-            let next_guess = (Column::new_column(guess) + dk).into_column();
-
-            if func_ex2.compute(next_guess) < func_ex2.compute(guess) {
-                guess = next_guess;
-                lm_guesses.push(guess);
-                mu *= 0.5;
-            } else {
-                mu *= 2.0;
-            }
-        } else {
-            mu *= 2.0;
-        }
-        lm_steps = step;
-    }
     println!("\nMethod: Levenberg-Marquardt Newton-Raphson");
     println!("  Starting Guess: [1.0, 1.0]");
-    println!("  Final Estimate: {:.5?}", guess);
-    println!("  Steps:          {}", lm_steps);
+    println!("  Final Estimate: {:.5?}", lm_final);
+    println!("  Steps:          {}", lm_guesses.len() - 1);
     println!("  Convergence:    Success");
 
     // Plot Exercise 2 Surface and Paths
@@ -216,61 +187,16 @@ fn main() {
     };
 
     println!("Running BFGS starting at (1, -1.2, 1, -1.2, 1, -1.2)...");
-    let mut x0 = Column::<6, f64>::new_column([1.0, -1.2, 1.0, -1.2, 1.0, -1.2]);
-    let mut h = SquareMatrix::<6, f64>::identity();
-    let grad_fn_ros = rosenbrock.differentiate(0.0001);
-    let mut g = Column::new_column(grad_fn_ros.compute(x0.into_column()));
-
-    let mut bfgs_steps = 0;
-    for step in 1..=200 {
-        let g_norm = (g.transpose() * g.clone()).into_value().sqrt();
-        if g_norm < 1e-5 {
-            bfgs_steps = step;
-            break;
-        }
-
-        let d = -(h.clone() * g.clone());
-
-        // Backtracking line search
-        let mut alpha = 1.0;
-        let f_x = rosenbrock.compute(x0.into_column());
-        let mut best_alpha = 0.0;
-        let mut best_val = f_x;
-        for _ in 0..12 {
-            let x_test = x0.clone() + d.clone() * alpha;
-            let val = rosenbrock.compute(x_test.into_column());
-            if val < best_val {
-                best_val = val;
-                best_alpha = alpha;
-            }
-            alpha *= 0.5;
-        }
-
-        let alpha_opt = if best_alpha == 0.0 { 1e-4 } else { best_alpha };
-        let xp = x0.clone() + d.clone() * alpha_opt;
-        let gp = Column::new_column(grad_fn_ros.compute(xp.into_column()));
-
-        let delta_g = gp.clone() - g.clone();
-        let delta_x = xp.clone() - x0.clone();
-
-        let den = (delta_g.transpose() * delta_x.clone()).into_value();
-        if den.abs() > 1e-9 {
-            let rho = 1.0 / den;
-            let identity = SquareMatrix::<6, f64>::identity();
-            let term1 = identity.clone() - (delta_x.clone() * delta_g.transpose() * rho);
-            let term2 = identity.clone() - (delta_g.clone() * delta_x.transpose() * rho);
-            h = term1 * h * term2 + (delta_x.clone() * delta_x.transpose() * rho);
-        }
-
-        x0 = xp;
-        g = gp;
-        bfgs_steps = step;
-    }
+    let bfgs_optimizer = Bfgs::new(Precision(1e-5), 0.0001);
+    let bfgs_guesses = bfgs_optimizer
+        .optimize(&rosenbrock, [1.0, -1.2, 1.0, -1.2, 1.0, -1.2])
+        .collect_vec();
+    let bfgs_final = bfgs_guesses.last().unwrap();
 
     println!("Method: BFGS Quasi-Newton (n=6)");
     println!("  Starting Guess:   [1.0, -1.2, 1.0, -1.2, 1.0, -1.2]");
-    println!("  Final Estimate:   {:.5?}", x0.into_column());
-    println!("  Steps:            {}", bfgs_steps);
+    println!("  Final Estimate:   {:.5?}", bfgs_final);
+    println!("  Steps:            {}", bfgs_guesses.len() - 1);
     println!("  Convergence:      Success (or max steps reached)");
 
     // Save dashboard
