@@ -34,4 +34,21 @@ path = "labs/lab5/main.rs"
 name = "lab6"
 path = "labs/lab6/main.rs"
 
+[[example]]
+name = "lab7"
+path = "labs/lab7/main.rs"
+
+[[example]]
+name = "lab8"
+path = "labs/lab8/main.rs"
+
+[[example]]
+name = "lab9"
+path = "labs/lab9/main.rs"
+
+[[example]]
+name = "lab10"
+path = "labs/lab10/main.rs"
+
+
 

@@ -11,28 +11,20 @@ pub struct RealGAProblem<F> {
 }
 
 #[derive(Clone, Debug)]
-pub struct GAStep<const N: usize> {
-    pub population: Vec<Column<N, f64>>,
+pub struct GAStep<const N: usize, const POP_SIZE: usize> {
+    pub population: [Column<N, f64>; POP_SIZE],
     pub best_x: Option<Column<N, f64>>,
     pub best_f: f64,
 }
 
-impl<const N: usize> GAStep<N> {
-    pub fn new(pop_size: usize, bounds_min: f64, bounds_max: f64) -> Self {
+impl<const N: usize, const POP_SIZE: usize> GAStep<N, POP_SIZE> {
+    pub fn new(bounds_min: f64, bounds_max: f64) -> Self {
         let mut rng = rand::rng();
-        let size = if pop_size % 2 != 0 {
-            pop_size + 1
-        } else {
-            pop_size
-        };
-
-        let mut population = Vec::with_capacity(size);
-        for _ in 0..size {
-            let mut ind = Column::default();
+        let mut population = [Column::default(); POP_SIZE];
+        for i in 0..POP_SIZE {
             for j in 0..N {
-                ind[(0, j)] = bounds_min + (bounds_max - bounds_min) * rng.random::<f64>();
+                population[i][(j, 0)] = bounds_min + (bounds_max - bounds_min) * rng.random::<f64>();
             }
-            population.push(ind);
         }
 
         Self {
@@ -43,9 +35,10 @@ impl<const N: usize> GAStep<N> {
     }
 }
 
-pub struct GeneticAlgorithm<const N: usize>;
+pub struct GeneticAlgorithm<const N: usize, const POP_SIZE: usize>;
 
-impl<const N: usize, F> TryOptimize<RealGAProblem<F>, GAStep<N>, GAStep<N>> for GeneticAlgorithm<N>
+impl<const N: usize, const POP_SIZE: usize, F> TryOptimize<RealGAProblem<F>, GAStep<N, POP_SIZE>, GAStep<N, POP_SIZE>>
+    for GeneticAlgorithm<N, POP_SIZE>
 where
     F: Fn(&Column<N, f64>) -> f64 + Clone + 'static,
 {
@@ -54,15 +47,14 @@ where
     fn try_optimize(
         &self,
         problem: RealGAProblem<F>,
-        starting_guess: GAStep<N>,
-    ) -> impl Iterator<Item = Result<GAStep<N>, Self::Error>> {
+        starting_guess: GAStep<N, POP_SIZE>,
+    ) -> impl Iterator<Item = Result<GAStep<N, POP_SIZE>, Self::Error>> {
         let mut current = starting_guess;
         let l_scale = (problem.bounds_max - problem.bounds_min).abs();
 
         std::iter::from_fn(move || {
             let mut rng = rand::rng();
-            let pop_size = current.population.len();
-            let mut fitness = Vec::with_capacity(pop_size);
+            let mut fitness = [0.0; POP_SIZE];
 
             let mut phi_min = f64::INFINITY;
             let mut idx_min = 0;
@@ -70,7 +62,7 @@ where
 
             for (i, ind) in current.population.iter().enumerate() {
                 let f_val = (problem.objective)(ind);
-                fitness.push(f_val);
+                fitness[i] = f_val;
 
                 if f_val < phi_min {
                     phi_min = f_val;
@@ -87,39 +79,42 @@ where
             }
 
             let mut sum_w = 0.0;
-            let mut weights = Vec::with_capacity(pop_size);
-            for f_val in &fitness {
-                let w = phi_high - f_val;
-                weights.push(w);
+            let mut weights = [0.0; POP_SIZE];
+            for i in 0..POP_SIZE {
+                let w = phi_high - fitness[i];
+                weights[i] = w;
                 sum_w += w;
             }
 
-            let mut s_cumsum = Vec::with_capacity(pop_size);
+            let mut s_cumsum = [0.0; POP_SIZE];
             let mut current_sum = 0.0;
-            for w in weights {
-                current_sum += w / sum_w;
-                s_cumsum.push(current_sum);
+            for i in 0..POP_SIZE {
+                current_sum += weights[i] / sum_w;
+                s_cumsum[i] = current_sum;
             }
 
-            let mut selected = Vec::with_capacity(pop_size);
-            for _ in 0..(pop_size - 1) {
+            let mut selected = [Column::<N, f64>::default(); POP_SIZE];
+            for i in 0..(POP_SIZE - 1) {
                 let r: f64 = rng.random();
-                let mut chosen_idx = pop_size - 1;
+                let mut chosen_idx = POP_SIZE - 1;
                 for (j, &s_val) in s_cumsum.iter().enumerate() {
                     if s_val >= r {
                         chosen_idx = j;
                         break;
                     }
                 }
-                selected.push(current.population[chosen_idx].clone());
+                selected[i] = current.population[chosen_idx].clone();
             }
 
             if let Some(best) = &current.best_x {
-                selected.push(best.clone());
+                selected[POP_SIZE - 1] = best.clone();
+            } else {
+                selected[POP_SIZE - 1] = selected[0].clone();
             }
 
-            let mut next_pop = Vec::with_capacity(pop_size);
-            for i in (0..pop_size - 1).step_by(2) {
+            let mut next_pop = [Column::<N, f64>::default(); POP_SIZE];
+            let mut i = 0;
+            while i < POP_SIZE - 1 {
                 let p1 = &selected[i];
                 let p2 = &selected[i + 1];
                 let lambda: f64 = rng.random();
@@ -128,18 +123,21 @@ where
                 let mut c2 = Column::default();
 
                 for j in 0..N {
-                    c1[(0, j)] = lambda * p2[(0, j)] + (1.0 - lambda) * p1[(0, j)];
-                    c2[(0, j)] = lambda * p1[(0, j)] + (1.0 - lambda) * p2[(0, j)];
+                    c1[(j, 0)] = lambda * p2[(j, 0)] + (1.0 - lambda) * p1[(j, 0)];
+                    c2[(j, 0)] = lambda * p1[(j, 0)] + (1.0 - lambda) * p2[(j, 0)];
                 }
 
                 for child in [&mut c1, &mut c2] {
                     if rng.random::<f64>() <= problem.mutation_rate {
                         for j in 0..N {
-                            child[(0, j)] += l_scale * 0.05 * (rng.random::<f64>() - 0.5);
+                            child[(j, 0)] += l_scale * 0.05 * (rng.random::<f64>() - 0.5);
                         }
                     }
-                    next_pop.push(child.clone());
                 }
+
+                next_pop[i] = c1;
+                next_pop[i + 1] = c2;
+                i += 2;
             }
 
             current.population = next_pop;
@@ -148,3 +146,123 @@ where
         })
     }
 }
+
+pub struct BinaryGAProblem<F, const N: usize, const POP_SIZE: usize> {
+    /// Fitness function to maximize
+    pub fitness_function: F,
+    /// Probability of flipping each bit during mutation
+    pub mutation_probability: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct BinaryGAStep<const N: usize, const POP_SIZE: usize> {
+    /// Current generation's population of binary chromosomes
+    pub population: [[bool; N]; POP_SIZE],
+    /// Best binary chromosome found so far
+    pub best_x: Option<[bool; N]>,
+    /// Best fitness value achieved so far
+    pub best_fitness: f64,
+}
+
+impl<const N: usize, const POP_SIZE: usize> BinaryGAStep<N, POP_SIZE> {
+    pub fn new() -> Self {
+        let mut rng = rand::rng();
+        let mut population = [[false; N]; POP_SIZE];
+        for i in 0..POP_SIZE {
+            for j in 0..N {
+                population[i][j] = rng.random::<bool>();
+            }
+        }
+        Self {
+            population,
+            best_x: None,
+            best_fitness: f64::NEG_INFINITY,
+        }
+    }
+}
+
+pub struct BinaryGeneticAlgorithm;
+
+impl<F, const N: usize, const POP_SIZE: usize> TryOptimize<BinaryGAProblem<F, N, POP_SIZE>, BinaryGAStep<N, POP_SIZE>, BinaryGAStep<N, POP_SIZE>> for BinaryGeneticAlgorithm
+where
+    F: Fn(&[bool; N]) -> f64 + Clone + 'static,
+{
+    type Error = String;
+
+    fn try_optimize(
+        &self,
+        problem: BinaryGAProblem<F, N, POP_SIZE>,
+        starting_guess: BinaryGAStep<N, POP_SIZE>,
+    ) -> impl Iterator<Item = Result<BinaryGAStep<N, POP_SIZE>, Self::Error>> {
+        let mut current = starting_guess;
+
+        std::iter::from_fn(move || {
+            let mut rng = rand::rng();
+
+            // 1. Selection (Tournament of size 2)
+            let mut mating_pool = [[false; N]; POP_SIZE];
+            for i in 0..POP_SIZE {
+                let candidate_idx_1 = rng.random_range(0..POP_SIZE);
+                let candidate_idx_2 = rng.random_range(0..POP_SIZE);
+                let fitness_1 = (problem.fitness_function)(&current.population[candidate_idx_1]);
+                let fitness_2 = (problem.fitness_function)(&current.population[candidate_idx_2]);
+                mating_pool[i] = if fitness_1 >= fitness_2 {
+                    current.population[candidate_idx_1]
+                } else {
+                    current.population[candidate_idx_2]
+                };
+            }
+
+            // 2. Crossover (Single-point crossover between adjacent parents in mating pool)
+            let mut offspring = [[false; N]; POP_SIZE];
+            let mut i = 0;
+            while i < POP_SIZE {
+                let parent_1 = &mating_pool[i];
+                let parent_2 = &mating_pool[i + 1];
+                let crossover_split_point = rng.random_range(1..N);
+
+                let mut child_1 = [false; N];
+                let mut child_2 = [false; N];
+                child_1[..crossover_split_point].copy_from_slice(&parent_1[..crossover_split_point]);
+                child_1[crossover_split_point..].copy_from_slice(&parent_2[crossover_split_point..]);
+
+                child_2[..crossover_split_point].copy_from_slice(&parent_2[..crossover_split_point]);
+                child_2[crossover_split_point..].copy_from_slice(&parent_1[crossover_split_point..]);
+
+                offspring[i] = child_1;
+                offspring[i + 1] = child_2;
+                i += 2;
+            }
+
+            // 3. Mutation (Bit-flip mutation based on mutation probability)
+            for individual in &mut offspring {
+                for gene in individual.iter_mut() {
+                    if rng.random::<f64>() <= problem.mutation_probability {
+                        *gene = !*gene;
+                    }
+                }
+            }
+
+            current.population = offspring;
+
+            // 4. Update Best Solution
+            let mut current_generation_best_fitness = f64::NEG_INFINITY;
+            let mut current_generation_best_index = 0;
+            for idx in 0..POP_SIZE {
+                let fitness_value = (problem.fitness_function)(&current.population[idx]);
+                if fitness_value > current_generation_best_fitness {
+                    current_generation_best_fitness = fitness_value;
+                    current_generation_best_index = idx;
+                }
+            }
+
+            if current_generation_best_fitness > current.best_fitness {
+                current.best_fitness = current_generation_best_fitness;
+                current.best_x = Some(current.population[current_generation_best_index]);
+            }
+
+            Some(Ok(current.clone()))
+        })
+    }
+}
+

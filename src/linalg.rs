@@ -119,8 +119,8 @@ impl<const M: usize, T> Row<M, T> {
     }
 
     pub fn into_row(self) -> [T; M] {
-        let [vec] = self.0;
-        vec
+        let [arr] = self.0;
+        arr
     }
 }
 
