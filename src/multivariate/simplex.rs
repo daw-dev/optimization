@@ -19,28 +19,23 @@ impl<S> Simplex<S> {
     }
 }
 
-pub trait LinearProgram<const V: usize, const C: usize> {
-    fn a(&self) -> Matrix<C, V, f64>;
-    fn b(&self) -> Column<C, f64>;
-    fn c(&self) -> Row<V, f64>;
+#[derive(Clone, Debug)]
+pub struct LinearProgram<const V: usize, const C: usize> {
+    pub a: Matrix<C, V, f64>,
+    pub b: Column<C, f64>,
+    pub c: Row<V, f64>,
 }
 
-impl<const V: usize, const C: usize, P> TryOptimize<P, SimplexGuess<V, C>> for Simplex<Iterations>
-where
-    P: LinearProgram<V, C>,
+impl<const V: usize, const C: usize> TryOptimize<LinearProgram<V, C>, SimplexGuess<V, C>>
+    for Simplex<Iterations>
 {
     type Error = String;
 
     fn try_optimize(
         &self,
-        problem: P,
+        problem: LinearProgram<V, C>,
         starting_guess: SimplexGuess<V, C>,
     ) -> impl Iterator<Item = Result<SimplexGuess<V, C>, String>> {
-        // Extract matrix definitions once
-        let a = problem.a();
-        let b = problem.b();
-        let c = problem.c();
-
         let mut current_guess = starting_guess;
 
         (0..self.stopping_condition.0)
@@ -49,32 +44,27 @@ where
                     return None;
                 }
 
-                // 1. Extract current basic matrix B from A
                 let mut b_mat: SquareMatrix<C, f64> = Matrix(core::array::from_fn(|_| [0.0; C]));
                 for i in 0..C {
                     for j in 0..C {
-                        b_mat.0[i][j] = a.0[i][current_guess.base_idx[j]];
+                        b_mat.0[i][j] = problem.a.0[i][current_guess.base_idx[j]];
                     }
                 }
 
-                // 2. Compute inverse B_inv utilizing built-in method
                 let b_inv = match b_mat.inverse() {
                     Some(inv) => inv,
                     None => return Some(Err("Singular basis matrix encountered".to_string())),
                 };
 
-                // 3. Extract costs of basic variables and compute y = c_B * B_inv
                 let mut c_b = Row::<C, f64>::new_row([0.0; C]);
                 for i in 0..C {
-                    c_b.0[0][i] = c.0[0][current_guess.base_idx[i]];
+                    c_b.0[0][i] = problem.c.0[0][current_guess.base_idx[i]];
                 }
                 let y = c_b * b_inv;
 
-                // 4. Compute reduced costs vector r = c - y * A
-                let y_a = y * a;
-                let r = c - y_a;
+                let y_a = y * problem.a;
+                let r = problem.c - y_a;
 
-                // 5. Optimality test & find entering variable
                 let mut min_r = f64::MAX;
                 let mut j_en = 0;
 
@@ -86,8 +76,7 @@ where
                 }
 
                 if min_r >= -1e-9 {
-                    // Calculate optimal coordinates x_opt = B_inv * b
-                    let x_b = b_inv * b;
+                    let x_b = b_inv * problem.b;
                     let mut x_opt = Column::<V, f64>::new_column([0.0; V]);
                     for (i, &idx) in current_guess.base_idx.iter().enumerate() {
                         x_opt.0[idx][0] = x_b.0[i][0];
@@ -97,14 +86,13 @@ where
                     return Some(Ok(current_guess.clone()));
                 }
 
-                // 6. Compute a_tilde and b_tilde for the entering column
                 let mut a_j_en = Column::<C, f64>::new_column([0.0; C]);
                 for i in 0..C {
-                    a_j_en.0[i][0] = a.0[i][j_en];
+                    a_j_en.0[i][0] = problem.a.0[i][j_en];
                 }
 
                 let a_tilde = b_inv * a_j_en;
-                let b_tilde = b_inv * b;
+                let b_tilde = b_inv * problem.b;
 
                 // 7. Unboundedness test
                 let mut is_unbounded = true;
@@ -118,7 +106,6 @@ where
                     return Some(Err("Problem is unbounded".to_string()));
                 }
 
-                // 8. Find leaving variable (minimal ratio test)
                 let mut min_theta = f64::MAX;
                 let mut q = 0;
 
@@ -132,7 +119,6 @@ where
                     }
                 }
 
-                // 9. Update basis indices
                 current_guess.base_idx[q] = j_en;
 
                 Some(Ok(current_guess.clone()))
@@ -141,36 +127,16 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct AugmentedLP<const V: usize, const C: usize>
-where
-    [(); C + V]:,
-{
-    pub a_aug: Matrix<C, { C + V }, f64>,
-    pub b: Column<C, f64>,
-    pub c_virt: Row<{ C + V }, f64>,
-}
+pub struct AugmentedLP;
 
-impl<const V: usize, const C: usize> LinearProgram<{ C + V }, C> for AugmentedLP<V, C>
-where
-    [(); C + V]:,
-{
-    fn a(&self) -> Matrix<C, { C + V }, f64> {
-        self.a_aug
-    }
-    fn b(&self) -> Column<C, f64> {
-        self.b
-    }
-    fn c(&self) -> Row<{ C + V }, f64> {
-        self.c_virt
-    }
-}
-
-impl<const V: usize, const C: usize> AugmentedLP<V, C>
-where
-    [(); C + V]:,
-{
-    pub fn new(a: &Matrix<C, V, f64>, b: &Column<C, f64>) -> Self {
+impl AugmentedLP {
+    pub fn new<const V: usize, const C: usize>(
+        a: &Matrix<C, V, f64>,
+        b: &Column<C, f64>,
+    ) -> LinearProgram<{ C + V }, C>
+    where
+        [(); C + V]:,
+    {
         let mut a_aug = [[0.0; C + V]; C];
         // Set first C columns to identity
         for i in 0..C {
@@ -191,10 +157,10 @@ where
             c_virt[i] = 1.0;
         }
 
-        Self {
-            a_aug: Matrix(a_aug),
+        LinearProgram {
+            a: Matrix(a_aug),
             b: b.clone(),
-            c_virt: Row::new_row(c_virt),
+            c: Row::new_row(c_virt),
         }
     }
 }
@@ -207,19 +173,15 @@ pub struct PermutedLP<const V: usize, const C: usize> {
     pub perm: [usize; V],
 }
 
-impl<const V: usize, const C: usize> LinearProgram<V, C> for PermutedLP<V, C> {
-    fn a(&self) -> Matrix<C, V, f64> {
-        self.a_perm
-    }
-    fn b(&self) -> Column<C, f64> {
-        self.b_perm
-    }
-    fn c(&self) -> Row<V, f64> {
-        self.c_perm
-    }
-}
-
 impl<const V: usize, const C: usize> PermutedLP<V, C> {
+    pub fn to_linear_program(&self) -> LinearProgram<V, C> {
+        LinearProgram {
+            a: self.a_perm,
+            b: self.b_perm.clone(),
+            c: self.c_perm,
+        }
+    }
+
     pub fn new(
         a: &Matrix<C, V, f64>,
         b: &Column<C, f64>,
@@ -275,5 +237,15 @@ impl<const V: usize, const C: usize> PermutedLP<V, C> {
             c_perm: Row::new_row(c_new),
             perm,
         })
+    }
+}
+
+impl<const V: usize, const C: usize> From<PermutedLP<V, C>> for LinearProgram<V, C> {
+    fn from(p: PermutedLP<V, C>) -> Self {
+        LinearProgram {
+            a: p.a_perm,
+            b: p.b_perm,
+            c: p.c_perm,
+        }
     }
 }

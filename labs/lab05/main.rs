@@ -9,28 +9,6 @@ use optimization::{
 };
 use plotly::{Plot, Scatter};
 
-#[derive(Clone, Copy)]
-struct Exercise1LP;
-
-impl LinearProgram<6, 4> for Exercise1LP {
-    fn a(&self) -> Matrix<4, 6, f64> {
-        Matrix([
-            [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
-            [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-        ])
-    }
-
-    fn b(&self) -> Column<4, f64> {
-        Column::new_column([8.0, 5.0, 2.0, 6.0])
-    }
-
-    fn c(&self) -> Row<6, f64> {
-        Row::new_row([5.0, 5.0, 3.0, 6.0, 4.0, 1.0])
-    }
-}
-
 fn main() {
     println!("========================================");
     println!("  LAB 5: Linear Programming & Simplex");
@@ -40,7 +18,16 @@ fn main() {
     // Exercise 1: Standard Simplex Algorithm
     // -------------------------------------------------------------------------
     println!("\n--- Exercise 1: Standard Simplex Algorithm ---");
-    let problem1 = Exercise1LP;
+    let problem1 = LinearProgram {
+        a: Matrix([
+            [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+        ]),
+        b: Column::new_column([8.0, 5.0, 2.0, 6.0]),
+        c: Row::new_row([5.0, 5.0, 3.0, 6.0, 4.0, 1.0]),
+    };
     let opt = Simplex::new(Iterations(100));
 
     let start_guess1 = SimplexGuess {
@@ -59,10 +46,10 @@ fn main() {
     let mut step = 0;
     let mut last_guess1 = None;
 
-    for res in opt.try_optimize(problem1, start_guess1.clone()) {
+    for res in opt.try_optimize(problem1.clone(), start_guess1.clone()) {
         match res {
             Ok(guess) => {
-                let cost = (problem1.c() * guess.x.clone()).into_value();
+                let cost = (problem1.c * guess.x.clone()).into_value();
                 steps_ex1.push(step as f64);
                 costs_ex1.push(cost);
                 println!(
@@ -83,7 +70,7 @@ fn main() {
     }
 
     let final_guess1 = last_guess1.expect("Simplex should have run at least one iteration");
-    let final_cost1 = (problem1.c() * final_guess1.x.clone()).into_value();
+    let final_cost1 = (problem1.c * final_guess1.x.clone()).into_value();
 
     println!("\nMethod: Standard Simplex Solver");
     println!(
@@ -222,7 +209,7 @@ fn main() {
     let mut step_p2 = 0;
     let mut last_guess_p2 = None;
 
-    for res in opt.try_optimize(permuted_lp.clone(), start_guess_p2.clone()) {
+    for res in opt.try_optimize(permuted_lp.to_linear_program(), start_guess_p2.clone()) {
         match res {
             Ok(guess) => {
                 let cost = (permuted_lp.c_perm * guess.x.clone()).into_value();
