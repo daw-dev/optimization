@@ -8,3 +8,4 @@ pub mod newton;
 pub mod quasi_newton;
 pub mod simplex;
 pub mod simulated_annealing;
+pub mod active_set;
