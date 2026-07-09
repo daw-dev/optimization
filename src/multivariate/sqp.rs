@@ -43,9 +43,9 @@ fn num_grad_f<const N: usize>(
 ) -> Column<N, f64> {
     let mut grad = [0.0; N];
     for i in 0..N {
-        let mut x_plus = x.clone();
+        let mut x_plus = *x;
         x_plus.0[i][0] += h_step;
-        let mut x_minus = x.clone();
+        let mut x_minus = *x;
         x_minus.0[i][0] -= h_step;
 
         grad[i] = (f(x_plus) - f(x_minus)) / (2.0 * h_step);
@@ -60,9 +60,9 @@ fn num_jac_h<const N: usize, const M: usize>(
 ) -> Matrix<M, N, f64> {
     let mut jac = [[0.0; N]; M];
     for j in 0..N {
-        let mut x_plus = x.clone();
+        let mut x_plus = *x;
         x_plus.0[j][0] += h_step;
-        let mut x_minus = x.clone();
+        let mut x_minus = *x;
         x_minus.0[j][0] -= h_step;
 
         let h_plus = h(x_plus);
@@ -84,19 +84,19 @@ fn grad_lagrangian<const N: usize, const M: usize>(
 ) -> Column<N, f64> {
     let mut grad = [0.0; N];
     for i in 0..N {
-        let mut x_plus = x.clone();
+        let mut x_plus = *x;
         x_plus.0[i][0] += h_step;
-        let mut x_minus = x.clone();
+        let mut x_minus = *x;
         x_minus.0[i][0] -= h_step;
 
-        let f_plus = f(x_plus.clone());
+        let f_plus = f(x_plus);
         let h_plus = h(x_plus);
         let mut l_plus = f_plus;
         for j in 0..M {
             l_plus += lambda.0[j][0] * h_plus.0[j][0];
         }
 
-        let f_minus = f(x_minus.clone());
+        let f_minus = f(x_minus);
         let h_minus = h(x_minus);
         let mut l_minus = f_minus;
         for j in 0..M {
@@ -117,9 +117,9 @@ fn num_hess_lagrangian<const N: usize, const M: usize>(
 ) -> Matrix<N, N, f64> {
     let mut hess = [[0.0; N]; N];
     for j in 0..N {
-        let mut x_plus = x.clone();
+        let mut x_plus = *x;
         x_plus.0[j][0] += h_step;
-        let mut x_minus = x.clone();
+        let mut x_minus = *x;
         x_minus.0[j][0] -= h_step;
 
         let grad_plus = grad_lagrangian(f, h, &x_plus, lambda, h_step);
@@ -176,7 +176,7 @@ where
             let a_m = num_jac_h(&h_wrapped, &x_col, h_step);
 
             // Constraint value
-            let h_val = h_wrapped(x_col.clone());
+            let h_val = h_wrapped(x_col);
 
             // Solve QP subproblem:
             // [ Q_m   A_m^T ] [ p ]   [ -g_f ]
@@ -192,19 +192,19 @@ where
             let p = solution.extract_p();
             let lambda_new = solution.extract_lambda();
 
-            let p_norm = (p.transpose() * p.clone()).into_value().sqrt();
+            let p_norm = (p.transpose() * p).into_value().sqrt();
 
             if p_norm <= precision {
                 converged = true;
                 return None;
             }
 
-            x_col = x_col.clone() + p;
+            x_col += p;
             lambda_col = lambda_new;
 
             Some(Ok(SqpState {
-                x: x_col.clone().into_column(),
-                lambda: lambda_col.clone().into_column(),
+                x: x_col.into_column(),
+                lambda: lambda_col.into_column(),
             }))
         }))
     }
@@ -247,7 +247,7 @@ where
             let g_f = num_grad_f(&f_wrapped, &x_col, h_step);
             let q_m = num_hess_lagrangian(&f_wrapped, &h_wrapped, &x_col, &lambda_col, h_step);
             let a_m = num_jac_h(&h_wrapped, &x_col, h_step);
-            let h_val = h_wrapped(x_col.clone());
+            let h_val = h_wrapped(x_col);
 
             let h_l = q_m.block_concat(&a_m);
             let rhs = (-g_f).stack(&(-h_val));
@@ -260,13 +260,13 @@ where
             let p = solution.extract_p();
             let lambda_new = solution.extract_lambda();
 
-            x_col = x_col.clone() + p;
+            x_col += p;
             lambda_col = lambda_new;
 
             count += 1;
             Some(Ok(SqpState {
-                x: x_col.clone().into_column(),
-                lambda: lambda_col.clone().into_column(),
+                x: x_col.into_column(),
+                lambda: lambda_col.into_column(),
             }))
         }))
     }

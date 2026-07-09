@@ -1,3 +1,5 @@
+#![allow(clippy::explicit_counter_loop)]
+
 use optimization::{
     linalg::Column,
     multivariate::genetic::{
@@ -68,7 +70,7 @@ fn main() {
     println!("Running GA with mating pool size 50...");
     let solver_binary = BinaryGeneticAlgorithm::<100, 50>::new(pmut);
     let problem_50 = BinaryGAProblem {
-        fitness_function: fitness_fn.clone(),
+        fitness_function: fitness_fn,
     };
 
     let mut generations_50 = Vec::new();
@@ -102,7 +104,7 @@ fn main() {
     println!("Running GA with mating pool size 500...");
     let solver_binary_500 = BinaryGeneticAlgorithm::<100, 500>::new(pmut);
     let problem_500 = BinaryGAProblem {
-        fitness_function: fitness_fn.clone(),
+        fitness_function: fitness_fn,
     };
 
     let mut generations_500 = Vec::new();
@@ -176,7 +178,7 @@ fn main() {
     for step in solver_real.optimize(problem_real, ()).take(150) {
         real_generations.push(step_real as f64);
         real_best_costs.push(step.best_f);
-        final_real_x = step.best_x.clone();
+        final_real_x = step.best_x;
         final_real_f = step.best_f;
         step_real += 1;
     }
@@ -208,7 +210,7 @@ fn main() {
     for step in solver_refined.optimize(problem_refined, ()).take(100) {
         refined_generations.push(step_ref as f64);
         refined_best_costs.push(step.best_f);
-        final_ref_x = step.best_x.clone();
+        final_ref_x = step.best_x;
         final_ref_f = step.best_f;
         step_ref += 1;
     }

@@ -7,7 +7,7 @@ use optimization::{
     multivariate::{
         active_set::{ActiveSetGuess, ActiveSetMethod, InequalityConstrainedQP},
         constrained::{EqualityConstrainedQP, NewtonRaphsonQP},
-        sqp::{EqualityConstrainedProblem, LocalSqpMethod},
+        sqp::{EqualityConstrainedProblem, LocalSqpMethod, SqpState},
     },
     optimizer::TryOptimize,
 };
@@ -43,50 +43,46 @@ fn main() {
     let b1 = Column::new_column([3.0, 4.0, 3.0]);
 
     let problem1 = EqualityConstrainedQP {
-        q: q1.clone(),
-        c: c1.clone(),
-        a: a1.clone(),
-        b: b1.clone(),
+        q: q1,
+        c: c1,
+        a: a1,
+        b: b1,
     };
 
     let start_guess1 = Column::zeros();
     let solver1 = NewtonRaphsonQP::<5, 3, Precision>::new(Precision(1e-7));
 
-    println!("Solving KKT System for 5D problem...");
-    let mut final_step1 = None;
-    let mut step = 0;
-
-    for res in solver1.try_optimize(problem1, start_guess1) {
-        match res {
-            Ok(guess) => {
-                println!(
-                    "  Iteration {}: x = {:.5?}, lambda = {:.5?}",
-                    step,
-                    guess.x.clone().into_column(),
-                    guess.lambda.clone().into_column()
-                );
-                step += 1;
-                final_step1 = Some(guess);
-            }
-            Err(err) => {
-                println!("  Error: {}", err);
-                break;
-            }
+    let final_step1 = itertools::process_results(
+        solver1.try_optimize(problem1, start_guess1),
+        |iter| {
+            iter.fold(
+                (0, None),
+                |(step, _), guess| {
+                    println!(
+                        "  Iteration {}: x = {:.5?}, lambda = {:.5?}",
+                        step,
+                        guess.x.into_column(),
+                        guess.lambda.into_column()
+                    );
+                    (step + 1, Some(guess))
+                }
+            ).1
         }
-    }
+    )
+    .expect("NewtonRaphsonQP failed");
 
     let sol1 = final_step1.expect("NewtonRaphsonQP should converge");
-    let x_star = sol1.x.clone();
-    let lambda_star = sol1.lambda.clone();
+    let x_star = sol1.x;
+    let lambda_star = sol1.lambda;
     println!("\nExercise 1 Results:");
-    println!("  Optimal Solution x*:     {:.5?}", x_star.clone().into_column());
-    println!("  Lagrange Multipliers:    {:.5?}", lambda_star.clone().into_column());
+    println!("  Optimal Solution x*:     {:.5?}", x_star.into_column());
+    println!("  Lagrange Multipliers:    {:.5?}", lambda_star.into_column());
 
     // Verify Lagrange's Theorem is satisfied: Qx* + c + A^T lambda* = 0
-    let grad_lagrangian = (q1 * x_star.clone()) + c1 + (a1.transpose() * lambda_star.clone());
+    let grad_lagrangian = (q1 * x_star) + c1 + (a1.transpose() * lambda_star);
     println!("  Verification (gradient of Lagrangian, target = [0.0; 5]):");
     println!("    {:.5?}", grad_lagrangian.into_column());
-    let constr_check = (a1 * x_star.clone()) - b1;
+    let constr_check = (a1 * x_star) - b1;
     println!("  Verification (Ax* - b, target = [0.0; 3]):");
     println!("    {:.5?}", constr_check.into_column());
 
@@ -108,51 +104,48 @@ fn main() {
     };
 
     let start_guess2 = [1.0, 5.0];
-
     let solver2 = LocalSqpMethod::new(Precision(1e-6));
 
-    let mut path_ex2_x1 = vec![start_guess2[0]];
-    let mut path_ex2_x2 = vec![start_guess2[1]];
-
     println!("Starting Local SQP from x0 = {:?}", start_guess2);
-    let mut k = 0;
-    let mut final_guess2 = None;
 
-    for res in solver2.try_optimize(problem2, start_guess2) {
-        match res {
-            Ok(state) => {
-                let x = state.x;
-                let lambda = state.lambda;
-                
-                // For stop crit (||p||), we print the difference from the previous point
-                let prev_x1 = *path_ex2_x1.last().unwrap();
-                let prev_x2 = *path_ex2_x2.last().unwrap();
-                let p_norm = ((x[0] - prev_x1).powi(2) + (x[1] - prev_x2).powi(2)).sqrt();
+    let (path_ex2, final_state) = itertools::process_results(
+        solver2.try_optimize(problem2, start_guess2),
+        |iter| {
+            iter.fold(
+                (Vec::<[f64; 2]>::new(), None),
+                |(mut path, _), state: SqpState<2, 1>| {
+                    let x = state.x;
+                    let lambda = state.lambda;
+                    
+                    let p_norm = if path.is_empty() {
+                        0.0
+                    } else {
+                        let prev = path.last().unwrap();
+                        ((x[0] - prev[0]).powi(2) + (x[1] - prev[1]).powi(2)).sqrt()
+                    };
 
-                path_ex2_x1.push(x[0]);
-                path_ex2_x2.push(x[1]);
-                
-                println!(
-                    "  Step {}: x = [{:.5}, {:.5}], lambda = {:.5}, stop_crit (||p||) = {:.3e}",
-                    k + 1, x[0], x[1], lambda[0], p_norm
-                );
-                
-                k += 1;
-                final_guess2 = Some(state);
-            }
-            Err(err) => {
-                println!("  Error: {}", err);
-                break;
-            }
+                    path.push(x);
+                    let step_num = path.len();
+                    
+                    println!(
+                        "  Step {}: x = [{:.5}, {:.5}], lambda = {:.5}, stop_crit (||p||) = {:.3e}",
+                        step_num, x[0], x[1], lambda[0], p_norm
+                    );
+                    
+                    (path, Some(state))
+                }
+            )
         }
-    }
+    )
+    .expect("SQP optimization failed");
 
-    let sol2 = final_guess2.expect("LocalSqpMethod should converge");
-    println!("Local SQP converged in {} iterations.", k);
+    let sol2 = final_state.expect("SqpState iterator should yield at least one state");
+    println!("Local SQP converged in {} iterations.", path_ex2.len());
     println!("\nExercise 2 Results:");
     println!("  Optimal Solution x*:     [{:.5}, {:.5}]", sol2.x[0], sol2.x[1]);
     println!("  Lagrange Multiplier:     {:.5}", sol2.lambda[0]);
 
+    let (path_ex2_x1, path_ex2_x2) = path_ex2.into_iter().map(|[x1, x2]| (x1, x2)).unzip();
 
     // -------------------------------------------------------------------------
     // Exercise 3: Active Set Method for QP with Inequality Constraints
@@ -189,37 +182,35 @@ fn main() {
     let solver3 = ActiveSetMethod::new(Precision(1e-7));
 
     println!("Starting Active Set Method from x0 = [1.0, 1.0], W0 = {:?}", start_guess3.w);
-    let mut path_ex3_x1 = vec![start_guess3.x.0[0][0]];
-    let mut path_ex3_x2 = vec![start_guess3.x.0[1][0]];
 
-    let mut iter_ex3 = 0;
-    let mut final_guess3 = None;
-
-    for res in solver3.try_optimize(problem3, start_guess3) {
-        match res {
-            Ok(guess) => {
-                println!(
-                    "  Iteration {}: x = [{:.4}, {:.4}], W = {:?}",
-                    iter_ex3 + 1,
-                    guess.x.0[0][0],
-                    guess.x.0[1][0],
-                    guess.w
-                );
-                path_ex3_x1.push(guess.x.0[0][0]);
-                path_ex3_x2.push(guess.x.0[1][0]);
-                iter_ex3 += 1;
-                final_guess3 = Some(guess);
-            }
-            Err(err) => {
-                println!("  Error: {}", err);
-                break;
-            }
+    let (path_ex3, final_guess3) = itertools::process_results(
+        solver3.try_optimize(problem3, start_guess3),
+        |iter| {
+            iter.fold(
+                (Vec::<[f64; 2]>::new(), None),
+                |(mut path, _), guess| {
+                    let x = [guess.x.0[0][0], guess.x.0[1][0]];
+                    path.push(x);
+                    let step_num = path.len();
+                    println!(
+                        "  Iteration {}: x = [{:.4}, {:.4}], W = {:?}",
+                        step_num,
+                        x[0],
+                        x[1],
+                        guess.w
+                    );
+                    (path, Some(guess))
+                }
+            )
         }
-    }
+    )
+    .expect("Active Set Method failed");
 
     let sol3 = final_guess3.expect("ActiveSetMethod should converge");
     println!("\nExercise 3 Results:");
     println!("  Optimal Solution x*:     [{:.5}, {:.5}]", sol3.x.0[0][0], sol3.x.0[1][0]);
+
+    let (path_ex3_x1, path_ex3_x2): (Vec<f64>, Vec<f64>) = path_ex3.into_iter().map(|[x1, x2]| (x1, x2)).unzip();
 
 
     // -------------------------------------------------------------------------

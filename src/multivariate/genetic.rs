@@ -83,7 +83,7 @@ where
 
             if phi_min < current.best_f {
                 current.best_f = phi_min;
-                current.best_x = Some(current.population[idx_min].clone());
+                current.best_x = Some(current.population[idx_min]);
             }
 
             let mut sum_w = 0.0;
@@ -111,13 +111,13 @@ where
                         break;
                     }
                 }
-                selected[i] = current.population[chosen_idx].clone();
+                selected[i] = current.population[chosen_idx];
             }
 
             if let Some(best) = &current.best_x {
-                selected[POP_SIZE - 1] = best.clone();
+                selected[POP_SIZE - 1] = *best;
             } else {
-                selected[POP_SIZE - 1] = selected[0].clone();
+                selected[POP_SIZE - 1] = selected[0];
             }
 
             let mut next_pop = [Column::<N, f64>::default(); POP_SIZE];
@@ -168,6 +168,12 @@ pub struct BinaryGAStep<const N: usize, const POP_SIZE: usize> {
     pub best_x: Option<[bool; N]>,
     /// Best fitness value achieved so far
     pub best_fitness: f64,
+}
+
+impl<const N: usize, const POP_SIZE: usize> Default for BinaryGAStep<N, POP_SIZE> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<const N: usize, const POP_SIZE: usize> BinaryGAStep<N, POP_SIZE> {

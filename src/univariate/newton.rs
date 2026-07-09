@@ -38,7 +38,7 @@ impl<'a, F: Function<f64, f64> + 'a> Optimize<&'a F, f64> for Newton<Precision> 
             let deriv1 = func.differentiate(self.diff_precision);
             let deriv2 = deriv1.differentiate(self.diff_precision);
             let diff = deriv1.compute(guess) / deriv2.compute(guess);
-            guess = guess - diff;
+            guess -= diff;
             if diff.abs() < self.stop_condition.0 {
                 None
             } else {

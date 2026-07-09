@@ -264,7 +264,7 @@ fn main() {
                     .collect(),
             )
             .marker(Marker::new().size(2))
-            .name(&format!("Step size {}", step));
+            .name(format!("Step size {}", step));
             plot3.add_trace(scatter_fixed3);
         }
     }

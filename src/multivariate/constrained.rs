@@ -39,7 +39,7 @@ where
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
-        let mut current = QPStep::from(starting_guess.clone());
+        let mut current = QPStep::from(starting_guess);
         let limit = self.stopping_criterion.0;
         let mut count = 0;
 
@@ -95,7 +95,7 @@ where
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
-        let mut current = QPStep::from(starting_guess.clone());
+        let mut current = QPStep::from(starting_guess);
         let precision = self.stopping_criterion.0;
 
         std::iter::once(Ok(QPStep::from(starting_guess))).chain(std::iter::from_fn(move || {

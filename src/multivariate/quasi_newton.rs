@@ -35,7 +35,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
             if count >= limit {
                 return None;
             }
-            let d = -(h.clone() * g.clone());
+            let d = -(h * g);
 
             // Backtracking line search
             let mut alpha = 1.0;
@@ -43,7 +43,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
             let mut best_alpha = 0.0;
             let mut best_val = f_x;
             for _ in 0..12 {
-                let x_test = x0.clone() + d.clone() * alpha;
+                let x_test = x0 + d * alpha;
                 let val = func.compute(x_test.into_column());
                 if val < best_val {
                     best_val = val;
@@ -53,19 +53,19 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
             }
 
             let alpha_opt = if best_alpha == 0.0 { 1e-4 } else { best_alpha };
-            let xp = x0.clone() + d.clone() * alpha_opt;
+            let xp = x0 + d * alpha_opt;
             let gp = Column::new_column(grad_fn.compute(xp.into_column()));
 
-            let delta_g = gp.clone() - g.clone();
-            let delta_x = xp.clone() - x0.clone();
+            let delta_g = gp - g;
+            let delta_x = xp - x0;
 
-            let den = (delta_g.transpose() * delta_x.clone()).into_value();
+            let den = (delta_g.transpose() * delta_x).into_value();
             if den.abs() > 1e-9 {
                 let rho = 1.0 / den;
                 let identity = SquareMatrix::<N, f64>::identity();
-                let term1 = identity.clone() - (delta_x.clone() * delta_g.transpose() * rho);
-                let term2 = identity.clone() - (delta_g.clone() * delta_x.transpose() * rho);
-                h = term1 * h * term2 + (delta_x.clone() * delta_x.transpose() * rho);
+                let term1 = identity - (delta_x * delta_g.transpose() * rho);
+                let term2 = identity - (delta_g * delta_x.transpose() * rho);
+                h = term1 * h * term2 + (delta_x * delta_x.transpose() * rho);
             }
 
             x0 = xp;
@@ -86,12 +86,12 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
         let mut g = Column::new_column(grad_fn.compute(x0.into_column()));
 
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
-            let g_norm = (g.transpose() * g.clone()).into_value().sqrt();
+            let g_norm = (g.transpose() * g).into_value().sqrt();
             if g_norm < self.stopping_criterion.0 {
                 return None;
             }
 
-            let d = -(h.clone() * g.clone());
+            let d = -(h * g);
 
             // Backtracking line search
             let mut alpha = 1.0;
@@ -99,7 +99,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
             let mut best_alpha = 0.0;
             let mut best_val = f_x;
             for _ in 0..12 {
-                let x_test = x0.clone() + d.clone() * alpha;
+                let x_test = x0 + d * alpha;
                 let val = func.compute(x_test.into_column());
                 if val < best_val {
                     best_val = val;
@@ -109,19 +109,19 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
             }
 
             let alpha_opt = if best_alpha == 0.0 { 1e-4 } else { best_alpha };
-            let xp = x0.clone() + d.clone() * alpha_opt;
+            let xp = x0 + d * alpha_opt;
             let gp = Column::new_column(grad_fn.compute(xp.into_column()));
 
-            let delta_g = gp.clone() - g.clone();
-            let delta_x = xp.clone() - x0.clone();
+            let delta_g = gp - g;
+            let delta_x = xp - x0;
 
-            let den = (delta_g.transpose() * delta_x.clone()).into_value();
+            let den = (delta_g.transpose() * delta_x).into_value();
             if den.abs() > 1e-9 {
                 let rho = 1.0 / den;
                 let identity = SquareMatrix::<N, f64>::identity();
-                let term1 = identity.clone() - (delta_x.clone() * delta_g.transpose() * rho);
-                let term2 = identity.clone() - (delta_g.clone() * delta_x.transpose() * rho);
-                h = term1 * h * term2 + (delta_x.clone() * delta_x.transpose() * rho);
+                let term1 = identity - (delta_x * delta_g.transpose() * rho);
+                let term2 = identity - (delta_g * delta_x.transpose() * rho);
+                h = term1 * h * term2 + (delta_x * delta_x.transpose() * rho);
             }
 
             x0 = xp;

@@ -49,7 +49,7 @@ fn main() {
     for res in opt.try_optimize(problem1.clone(), start_guess1.clone()) {
         match res {
             Ok(guess) => {
-                let cost = (problem1.c * guess.x.clone()).into_value();
+                let cost = (problem1.c * guess.x).into_value();
                 steps_ex1.push(step as f64);
                 costs_ex1.push(cost);
                 println!(
@@ -57,7 +57,7 @@ fn main() {
                     step,
                     guess.base_idx,
                     cost,
-                    guess.x.clone().into_column()
+                    guess.x.into_column()
                 );
                 step += 1;
                 last_guess1 = Some(guess);
@@ -70,7 +70,7 @@ fn main() {
     }
 
     let final_guess1 = last_guess1.expect("Simplex should have run at least one iteration");
-    let final_cost1 = (problem1.c * final_guess1.x.clone()).into_value();
+    let final_cost1 = (problem1.c * final_guess1.x).into_value();
 
     println!("\nMethod: Standard Simplex Solver");
     println!(
@@ -149,7 +149,7 @@ fn main() {
                     step_p1,
                     guess.base_idx,
                     virtual_cost,
-                    guess.x.clone().into_column()
+                    guess.x.into_column()
                 );
                 step_p1 += 1;
                 last_guess_p1 = Some(guess);
@@ -212,7 +212,7 @@ fn main() {
     for res in opt.try_optimize(permuted_lp.to_linear_program(), start_guess_p2.clone()) {
         match res {
             Ok(guess) => {
-                let cost = (permuted_lp.c_perm * guess.x.clone()).into_value();
+                let cost = (permuted_lp.c_perm * guess.x).into_value();
                 steps_p2.push(step_p2 as f64);
                 costs_p2.push(cost);
                 println!(
@@ -220,7 +220,7 @@ fn main() {
                     step_p2,
                     guess.base_idx,
                     cost,
-                    guess.x.clone().into_column()
+                    guess.x.into_column()
                 );
                 step_p2 += 1;
                 last_guess_p2 = Some(guess);

@@ -58,7 +58,7 @@ impl<const N: usize> SquareMatrix<N, f64> {
     }
 
     pub fn inverse(&self) -> Option<Self> {
-        let mut a = self.0.clone();
+        let mut a = self.0;
         let mut inv = Self::identity().0;
 
         for i in 0..N {
@@ -165,9 +165,9 @@ where
     fn add_assign(&mut self, rhs: Matrix<N, M, U>) {
         self.0
             .iter_mut()
-            .zip(rhs.0.into_iter())
+            .zip(rhs.0)
             .for_each(|(dst, src)| {
-                dst.iter_mut().zip(src.into_iter()).for_each(|(dst, src)| {
+                dst.iter_mut().zip(src).for_each(|(dst, src)| {
                     *dst += src;
                 })
             });
@@ -204,9 +204,9 @@ where
     fn sub_assign(&mut self, rhs: Matrix<N, M, U>) {
         self.0
             .iter_mut()
-            .zip(rhs.0.into_iter())
+            .zip(rhs.0)
             .for_each(|(dst, src)| {
-                dst.iter_mut().zip(src.into_iter()).for_each(|(dst, src)| {
+                dst.iter_mut().zip(src).for_each(|(dst, src)| {
                     *dst -= src;
                 })
             });

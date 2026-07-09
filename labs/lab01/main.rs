@@ -70,14 +70,14 @@ fn main() {
     let func_quad = |x: f64| x.powi(2) - 4.0 * x + 2.0;
     let opt_newton = Newton::new(Precision(1e-5), 0.001);
     for &x0 in &[3.0, 6.0, 8.0, -15.0] {
-        let guess = opt_newton.clone().solution(&func_quad, x0);
+        let guess = opt_newton.solution(&func_quad, x0);
         println!("  x0 = {:^5} -> minimizer: {}", x0, guess);
     }
 
     println!("\nNewton-Raphson for f(x) = 0.5 * x^2 - sin(x):");
     let func_trig = |x: f64| 0.5 * x.powi(2) - x.sin();
     for &x0 in &[2.0, 3.0, 0.0] {
-        let guess = opt_newton.clone().solution(&func_trig, x0);
+        let guess = opt_newton.solution(&func_trig, x0);
         println!("  x0 = {:^5} -> minimizer: {}", x0, guess);
     }
 

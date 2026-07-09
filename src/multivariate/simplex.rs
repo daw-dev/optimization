@@ -39,7 +39,7 @@ impl<const V: usize, const C: usize> TryOptimize<LinearProgram<V, C>, SimplexGue
         let mut current_guess = starting_guess;
 
         (0..self.stopping_condition.0)
-            .map(move |_| {
+            .filter_map(move |_| {
                 if current_guess.is_optimal {
                     return None;
                 }
@@ -122,13 +122,13 @@ impl<const V: usize, const C: usize> TryOptimize<LinearProgram<V, C>, SimplexGue
 
                 Some(Ok(current_guess.clone()))
             })
-            .flatten()
     }
 }
 
 pub struct AugmentedLP;
 
 impl AugmentedLP {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new<const V: usize, const C: usize>(
         a: &Matrix<C, V, f64>,
         b: &Column<C, f64>,
@@ -158,7 +158,7 @@ impl AugmentedLP {
 
         LinearProgram {
             a: Matrix(a_aug),
-            b: b.clone(),
+            b: *b,
             c: Row::new_row(c_virt),
         }
     }
@@ -176,7 +176,7 @@ impl<const V: usize, const C: usize> PermutedLP<V, C> {
     pub fn to_linear_program(&self) -> LinearProgram<V, C> {
         LinearProgram {
             a: self.a_perm,
-            b: self.b_perm.clone(),
+            b: self.b_perm,
             c: self.c_perm,
         }
     }
@@ -228,7 +228,7 @@ impl<const V: usize, const C: usize> PermutedLP<V, C> {
             .ok_or_else(|| "Coordinate change matrix is singular".to_string())?;
 
         let a_perm = cch_inv * Matrix(a_new);
-        let b_perm = cch_inv * b.clone();
+        let b_perm = cch_inv * *b;
 
         Ok(Self {
             a_perm,

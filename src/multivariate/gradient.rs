@@ -36,7 +36,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
                 None
             } else {
                 for i in 0..N {
-                    guess[i] = guess[i] - self.step * computed[i];
+                    guess[i] -= self.step * computed[i];
                 }
                 Some(guess)
             }
@@ -54,7 +54,7 @@ impl<const N: usize, F: crate::function::Function<[f64; N], f64>> Optimize<&F, [
             let gradient = func.differentiate(self.gradient_precision);
             let computed = gradient.compute(guess);
             for i in 0..N {
-                guess[i] = guess[i] - self.step * computed[i];
+                guess[i] -= self.step * computed[i];
             }
             guess
         }))
@@ -121,7 +121,7 @@ where
                 };
                 let step = (step_range.start + step_range.end) / 2.0;
                 for i in 0..N {
-                    guess[i] = guess[i] - step * computed[i];
+                    guess[i] -= step * computed[i];
                 }
                 Some(Ok(guess))
             }
@@ -158,7 +158,7 @@ where
                     .solution(&line_search_func, line_search_starting_guess.clone());
                 let step = (step_range.start + step_range.end) / 2.0;
                 for i in 0..N {
-                    guess[i] = guess[i] - step * computed[i];
+                    guess[i] -= step * computed[i];
                 }
                 Some(guess)
             }
@@ -204,7 +204,7 @@ where
             };
             let step = (step_range.start + step_range.end) / 2.0;
             for i in 0..N {
-                guess[i] = guess[i] - step * computed[i];
+                guess[i] -= step * computed[i];
             }
             count += 1;
             Some(Ok(guess))
@@ -240,7 +240,7 @@ where
                 .solution(&line_search_func, line_search_starting_guess.clone());
             let step = (step_range.start + step_range.end) / 2.0;
             for i in 0..N {
-                guess[i] = guess[i] - step * computed[i];
+                guess[i] -= step * computed[i];
             }
             count += 1;
             Some(guess)

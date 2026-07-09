@@ -76,7 +76,7 @@ fn main() {
     };
 
     let solver_5 = SimulatedAnnealing::new(100.0, 0.95);
-    let mut best_tour_5 = start_tour_5.clone();
+    let mut best_tour_5 = start_tour_5;
     let mut best_energy_5 = start_energy_5;
 
     // Run for 200 iterations
@@ -172,7 +172,7 @@ fn main() {
     let mut iterations = Vec::new();
     let mut current_lengths = Vec::new();
     let mut best_lengths = Vec::new();
-    let mut best_tour = start_tour.clone();
+    let mut best_tour = start_tour;
     let mut best_energy = start_energy;
 
     // We can sample plots every 500 steps to keep plotly light

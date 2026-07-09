@@ -32,10 +32,10 @@ impl<S> ActiveSetMethod<S> {
     }
 }
 
-fn solve_dynamic(mat: &Vec<Vec<f64>>, b: &Vec<f64>) -> Option<Vec<f64>> {
+fn solve_dynamic(mat: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = mat.len();
-    let mut a = mat.clone();
-    let mut x = b.clone();
+    let mut a = mat.to_owned();
+    let mut x = b.to_owned();
 
     for i in 0..n {
         let mut max_row = i;
@@ -116,8 +116,8 @@ impl<const N: usize, const M: usize>
             }
 
             // Fill RHS: [ -(Q x + c); 0 ]
-            let qx = problem.q.clone() * current.x.clone();
-            let grad = qx + problem.c.clone();
+            let qx = problem.q * current.x;
+            let grad = qx + problem.c;
             let mut rhs = vec![0.0; kkt_size];
             for i in 0..N {
                 rhs[i] = -grad.0[i][0];
@@ -130,9 +130,7 @@ impl<const N: usize, const M: usize>
             };
 
             let mut p = [0.0; N];
-            for i in 0..N {
-                p[i] = solution[i];
-            }
+            p[..N].copy_from_slice(&solution[..N]);
             let lambdas = &solution[N..];
 
             // Check if step p is close to zero
@@ -240,8 +238,8 @@ impl<const N: usize, const M: usize>
             }
 
             // Fill RHS: [ -(Q x + c); 0 ]
-            let qx = problem.q.clone() * current.x.clone();
-            let grad = qx + problem.c.clone();
+            let qx = problem.q * current.x;
+            let grad = qx + problem.c;
             let mut rhs = vec![0.0; kkt_size];
             for i in 0..N {
                 rhs[i] = -grad.0[i][0];
@@ -254,9 +252,7 @@ impl<const N: usize, const M: usize>
             };
 
             let mut p = [0.0; N];
-            for i in 0..N {
-                p[i] = solution[i];
-            }
+            p[..N].copy_from_slice(&solution[..N]);
             let lambdas = &solution[N..];
 
             // Check if step p is close to zero

@@ -40,7 +40,7 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
         let mut d = -g;
 
         (0..N)
-            .map(move |_| {
+            .filter_map(move |_| {
                 let g_norm = (g.transpose() * g).into_value().sqrt();
 
                 if g_norm <= self.stopping_criterion.0 {
@@ -70,7 +70,6 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
                 g = g_next;
                 Some(Ok(x))
             })
-            .flatten()
     }
 }
 
@@ -144,8 +143,8 @@ mod tests {
         let res = opt
             .try_optimize(
                 PerfectQuadraticProblem {
-                    matrix: A.clone(),
-                    b: B.clone(),
+                    matrix: A,
+                    b: B,
                 },
                 Column::zeros(),
             )
@@ -153,11 +152,11 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let analytical = A.inverse().unwrap() * B.clone();
+        let analytical = A.inverse().unwrap() * B;
 
         // Assert commutative property: scalar * matrix == matrix * scalar
-        let B_left = 2.0 * B.clone();
-        let B_right = B.clone() * 2.0;
+        let B_left = 2.0 * B;
+        let B_right = B * 2.0;
         for i in 0..N {
             assert!((B_left.0[i][0] - B_right.0[i][0]).abs() < 1e-9);
         }

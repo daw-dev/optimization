@@ -35,6 +35,12 @@ impl<const N: usize> BBStep<N> {
     }
 }
 
+impl<const N: usize> Default for BBStep<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct BranchAndBound;
 
@@ -179,10 +185,7 @@ pub fn solve_lp<const N: usize, const M: usize>(
             }
         }
 
-        let leaving_row_idx = match leaving_row_idx {
-            Some(idx) => idx,
-            None => return None, // Problem is unbounded
-        };
+        let leaving_row_idx = leaving_row_idx?;
 
         // Pivot on (leaving_row_idx, entering_col_idx)
         let pivot_value = tableau[leaving_row_idx][entering_col_idx];
@@ -248,7 +251,7 @@ impl<const N: usize, const M: usize> Optimize<MILPProblem<N, M>, (), BBStep<N>> 
             };
 
             current_step.active_nodes = stack.len();
-            current_step.current_node = Some((lower_bounds.clone(), upper_bounds.clone()));
+            current_step.current_node = Some((lower_bounds, upper_bounds));
 
             let lp_res = solve_lp(
                 &problem.objective_coeffs,
@@ -289,14 +292,14 @@ impl<const N: usize, const M: usize> Optimize<MILPProblem<N, M>, (), BBStep<N>> 
                             // Branch on the split variable index
                             if let Some(j) = split_variable_idx {
                                 // Right branch: force xj = 1
-                                let mut right_lower_bounds = lower_bounds.clone();
+                                let mut right_lower_bounds = lower_bounds;
                                 right_lower_bounds[j] = 1.0;
-                                stack.push((right_lower_bounds, upper_bounds.clone()));
+                                stack.push((right_lower_bounds, upper_bounds));
 
                                 // Left branch: force xj = 0
-                                let mut left_upper_bounds = upper_bounds.clone();
+                                let mut left_upper_bounds = upper_bounds;
                                 left_upper_bounds[j] = 0.0;
-                                stack.push((lower_bounds.clone(), left_upper_bounds));
+                                stack.push((lower_bounds, left_upper_bounds));
                             }
                             current_step.active_nodes = stack.len();
                             Some(current_step.clone())

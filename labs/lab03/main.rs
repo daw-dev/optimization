@@ -28,26 +28,26 @@ pub fn main() {
     println!("Vector B:");
     println!("{B}");
 
-    let analytical_col = A.inverse().unwrap() * B.clone();
-    let x_th = analytical_col.clone().into_column();
+    let analytical_col = A.inverse().unwrap() * B;
+    let x_th = analytical_col.into_column();
     println!("Analytical Solution:\n  {:?}", x_th);
 
     let start_guess = Column::randomized(0.0..2.0);
-    let mut x = start_guess.clone();
+    let mut x = start_guess;
     let opt = Conjugate::new(Precision(0.001));
     let guesses_iter = opt.try_optimize(
         PerfectQuadraticProblem {
-            matrix: A.clone(),
-            b: B.clone(),
+            matrix: A,
+            b: B,
         },
-        start_guess.clone(),
+        start_guess,
     );
 
     let mut steps_ex1 = Vec::new();
     let mut errors_ex1 = Vec::new();
 
     // Step 0 error
-    let diff0 = x.clone() - analytical_col.clone();
+    let diff0 = x - analytical_col;
     errors_ex1.push((diff0.transpose() * diff0).into_value().sqrt().log10());
     steps_ex1.push(0.0);
 
@@ -56,7 +56,7 @@ pub fn main() {
         match guess_res {
             Ok(g) => {
                 x = g;
-                let diff = x.clone() - analytical_col.clone();
+                let diff = x - analytical_col;
                 errors_ex1.push((diff.transpose() * diff).into_value().sqrt().log10());
                 steps_ex1.push((i + 1) as f64);
                 steps_cnt = i + 1;
@@ -102,7 +102,7 @@ pub fn main() {
     let B2 = Column::<N2, f64>::randomized(0.0..1.0);
 
     // Compute analytical solution
-    let x_th2 = A2.inverse().unwrap() * B2.clone();
+    let x_th2 = A2.inverse().unwrap() * B2;
 
     // Conjugate Gradient with stopping criterion ||grad|| <= 10^-8
     let mut x2 = Column::<N2, f64>::zeros();
@@ -111,17 +111,17 @@ pub fn main() {
     let mut errors_ex2 = Vec::new();
 
     // Step 0 error (initial guess)
-    let diff0 = x2.clone() - x_th2.clone();
+    let diff0 = x2 - x_th2;
     errors_ex2.push((diff0.transpose() * diff0).into_value().sqrt().log10());
     steps_ex2.push(0.0);
 
     let opt2 = Conjugate::new(Precision(1e-8));
     let guesses_iter2 = opt2.try_optimize(
         PerfectQuadraticProblem {
-            matrix: A2.clone(),
-            b: B2.clone(),
+            matrix: A2,
+            b: B2,
         },
-        x2.clone(),
+        x2,
     );
 
     let mut steps2 = 0;
@@ -129,7 +129,7 @@ pub fn main() {
         match guess_res {
             Ok(g) => {
                 x2 = g;
-                let diff = x2.clone() - x_th2.clone();
+                let diff = x2 - x_th2;
                 errors_ex2.push((diff.transpose() * diff).into_value().sqrt().log10());
                 steps_ex2.push((i + 1) as f64);
                 steps2 = i + 1;
