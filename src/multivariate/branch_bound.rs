@@ -35,6 +35,7 @@ impl<const N: usize> BBStep<N> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct BranchAndBound;
 
 /// Solves the LP relaxation: Minimize objective_coeffs^T * x subject to constraint_matrix * x <= constraint_rhs,
@@ -169,7 +170,8 @@ pub fn solve_lp<const N: usize, const M: usize>(
         let mut min_ratio = f64::MAX;
         for row_idx in 0..total_constraints {
             if tableau[row_idx][entering_col_idx] > 1e-7 {
-                let ratio = tableau[row_idx][num_tableau_cols - 1] / tableau[row_idx][entering_col_idx];
+                let ratio =
+                    tableau[row_idx][num_tableau_cols - 1] / tableau[row_idx][entering_col_idx];
                 if ratio < min_ratio {
                     min_ratio = ratio;
                     leaving_row_idx = Some(row_idx);
@@ -223,13 +225,14 @@ pub fn solve_lp<const N: usize, const M: usize>(
         }
     }
 
-    let optimal_lp_value = tableau[total_constraints][num_tableau_cols - 1] + objective_constant_offset;
+    let optimal_lp_value =
+        tableau[total_constraints][num_tableau_cols - 1] + objective_constant_offset;
     Some((optimal_lp_value, full_variable_solutions))
 }
 
 impl<const N: usize, const M: usize> Optimize<MILPProblem<N, M>, (), BBStep<N>> for BranchAndBound {
     fn optimize(
-        &self,
+        self,
         problem: MILPProblem<N, M>,
         _starting_guess: (),
     ) -> impl Iterator<Item = BBStep<N>> {
@@ -312,31 +315,37 @@ mod tests {
     #[test]
     fn test_solve_lp() {
         let objective_coeffs = [-2.5, -1.1, -0.9, -1.5];
-        let constraint_matrix = [
-            [4.3, 3.8, 1.6, 2.1],
-            [4.0, 2.0, 1.9, 3.0],
-        ];
+        let constraint_matrix = [[4.3, 3.8, 1.6, 2.1], [4.0, 2.0, 1.9, 3.0]];
         let constraint_rhs = [9.2, 9.0];
         let lower_bounds = [0.0, 0.0, 0.0, 0.0];
         let upper_bounds = [1.0, 1.0, 1.0, 1.0];
 
-        let res = solve_lp(&objective_coeffs, &constraint_matrix, &constraint_rhs, &lower_bounds, &upper_bounds);
+        let res = solve_lp(
+            &objective_coeffs,
+            &constraint_matrix,
+            &constraint_rhs,
+            &lower_bounds,
+            &upper_bounds,
+        );
         println!("LP relaxation result: {:?}", res);
-        
+
         // Also test with x2 fixed to 0
         let lower_bounds2 = [0.0, 0.0, 0.0, 0.0];
         let upper_bounds2 = [1.0, 0.0, 1.0, 1.0];
-        let res2 = solve_lp(&objective_coeffs, &constraint_matrix, &constraint_rhs, &lower_bounds2, &upper_bounds2);
+        let res2 = solve_lp(
+            &objective_coeffs,
+            &constraint_matrix,
+            &constraint_rhs,
+            &lower_bounds2,
+            &upper_bounds2,
+        );
         println!("LP relaxation with x2=0 result: {:?}", res2);
     }
 
     #[test]
     fn test_branch_and_bound() {
         let objective_coeffs = [-2.5, -1.1, -0.9, -1.5];
-        let constraint_matrix = [
-            [4.3, 3.8, 1.6, 2.1],
-            [4.0, 2.0, 1.9, 3.0],
-        ];
+        let constraint_matrix = [[4.3, 3.8, 1.6, 2.1], [4.0, 2.0, 1.9, 3.0]];
         let constraint_rhs = [9.2, 9.0];
 
         let problem = MILPProblem::<4, 2> {
@@ -358,4 +367,3 @@ mod tests {
         }
     }
 }
-

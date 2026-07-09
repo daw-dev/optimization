@@ -5,9 +5,10 @@ use optimization::{
 use plotly::{Plot, Scatter};
 
 fn load_knapsack() -> (Vec<f64>, Vec<f64>) {
-    let content = std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
-        .or_else(|_| std::fs::read_to_string("knapsack.csv"))
-        .expect("Failed to read knapsack.csv");
+    let content =
+        std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
+            .or_else(|_| std::fs::read_to_string("knapsack.csv"))
+            .expect("Failed to read knapsack.csv");
     let mut weights = Vec::new();
     let mut values = Vec::new();
     for line in content.lines().skip(1) {
@@ -41,10 +42,7 @@ fn main() {
     // xi in {0, 1}
 
     let c = [-2.5, -1.1, -0.9, -1.5];
-    let a = [
-        [4.3, 3.8, 1.6, 2.1],
-        [4.0, 2.0, 1.9, 3.0],
-    ];
+    let a = [[4.3, 3.8, 1.6, 2.1], [4.0, 2.0, 1.9, 3.0]];
     let b = [9.2, 9.0];
 
     let problem1 = MILPProblem::<4, 2> {
@@ -72,7 +70,10 @@ fn main() {
     }
 
     let final_1 = final_step1.expect("B&B should run at least one node");
-    println!("  Optimal solution y*: {:.2} (Target = -4.9)", final_1.best_y);
+    println!(
+        "  Optimal solution y*: {:.2} (Target = -4.9)",
+        final_1.best_y
+    );
     if let Some(ref x) = final_1.best_x {
         println!("  Optimal x*:          {:.2?}", x);
     }

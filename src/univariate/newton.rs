@@ -4,7 +4,7 @@ use crate::{
     optimizer::Optimize,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Newton<S> {
     stop_condition: S,
     diff_precision: f64,
@@ -20,7 +20,7 @@ impl<S> Newton<S> {
 }
 
 impl<'a, F: Function<f64, f64> + 'a> Optimize<&'a F, f64> for Newton<Iterations> {
-    fn optimize(&self, func: &'a F, starting_guess: f64) -> impl Iterator<Item = f64> {
+    fn optimize(self, func: &'a F, starting_guess: f64) -> impl Iterator<Item = f64> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain((0..self.stop_condition.0).map(move |_| {
             let deriv1 = func.differentiate(self.diff_precision);
@@ -32,7 +32,7 @@ impl<'a, F: Function<f64, f64> + 'a> Optimize<&'a F, f64> for Newton<Iterations>
 }
 
 impl<'a, F: Function<f64, f64> + 'a> Optimize<&'a F, f64> for Newton<Precision> {
-    fn optimize(&self, func: &'a F, starting_guess: f64) -> impl Iterator<Item = f64> {
+    fn optimize(self, func: &'a F, starting_guess: f64) -> impl Iterator<Item = f64> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
             let deriv1 = func.differentiate(self.diff_precision);

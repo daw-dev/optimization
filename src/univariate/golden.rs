@@ -3,7 +3,7 @@ use crate::optimizer::TryOptimize;
 use crate::{function::Function, helpers::Precision};
 use std::{cmp::Ordering, f64, ops::Range};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GoldenRatio<S> {
     stopping_condition: S,
 }
@@ -28,7 +28,7 @@ where
 {
     type Error = String;
     fn try_optimize(
-        &self,
+        self,
         func: &F,
         starting_guess: Range<f64>,
     ) -> impl Iterator<Item = Result<Range<f64>, String>> {
@@ -82,7 +82,7 @@ where
 {
     type Error = String;
     fn try_optimize(
-        &self,
+        self,
         func: &F,
         starting_guess: Range<f64>,
     ) -> impl Iterator<Item = Result<Range<f64>, String>> {

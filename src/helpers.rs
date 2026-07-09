@@ -1,12 +1,12 @@
 use std::ops::Range;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Iterations(pub usize);
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Precision(pub f64);
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Average;
 
 #[derive(Debug, Clone)]
@@ -180,7 +180,7 @@ pub fn prompt_and_open_dashboard<P: AsRef<std::path::Path>>(path: P) {
                 .arg(&path_str)
                 .spawn()
                 .or_else(|_| Command::new("xdg-open").arg(&path_str).spawn());
-            
+
             if let Err(e) = status {
                 println!("Failed to open browser automatically: {}", e);
             }

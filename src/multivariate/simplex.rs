@@ -8,7 +8,7 @@ pub struct SimplexGuess<const V: usize, const C: usize> {
     pub is_optimal: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Simplex<S> {
     stopping_condition: S,
 }
@@ -32,7 +32,7 @@ impl<const V: usize, const C: usize> TryOptimize<LinearProgram<V, C>, SimplexGue
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: LinearProgram<V, C>,
         starting_guess: SimplexGuess<V, C>,
     ) -> impl Iterator<Item = Result<SimplexGuess<V, C>, String>> {

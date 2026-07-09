@@ -2,7 +2,7 @@ use std::{cmp::Ordering, ops::Range};
 
 use crate::{function::Function, optimizer::TryOptimize};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Fibonacci<const N: usize>;
 
 impl<const N: usize> Fibonacci<N> {
@@ -35,7 +35,7 @@ where
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: &F,
         starting_guess: Range<f64>,
     ) -> impl Iterator<Item = Result<Range<f64>, String>> {

@@ -5,6 +5,7 @@ use crate::{
     optimizer::Optimize,
 };
 
+#[derive(Clone, Copy)]
 pub struct NewtonRaphson<S> {
     stopping_condition: S,
     difference: f64,
@@ -22,7 +23,7 @@ impl<S> NewtonRaphson<S> {
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for NewtonRaphson<Iterations>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain((0..self.stopping_condition.0).map(move |_| {
             let gradient = func.differentiate(self.difference);
@@ -40,7 +41,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for NewtonRaphson<Precision>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
             let gradient = func.differentiate(self.difference);
@@ -60,6 +61,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct LevenbergMarquardt<S> {
     stopping_criterion: S,
     difference: f64,
@@ -79,7 +81,7 @@ impl<S> LevenbergMarquardt<S> {
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for LevenbergMarquardt<Iterations>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         let mut mu = self.initial_mu;
         let mut count = 0;
@@ -125,7 +127,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for LevenbergMarquardt<Precision>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut guess = starting_guess;
         let mut mu = self.initial_mu;
 

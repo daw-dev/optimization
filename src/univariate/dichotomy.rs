@@ -3,7 +3,7 @@ use crate::helpers::{Iterations, Precision};
 use crate::optimizer::TryOptimize;
 use std::{cmp::Ordering, ops::Range};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Dichotomy<S> {
     stopping_condition: S,
 }
@@ -27,7 +27,7 @@ where
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: &F,
         starting_guess: Range<f64>,
     ) -> impl Iterator<Item = Result<Range<f64>, String>> {
@@ -128,7 +128,7 @@ where
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: &F,
         starting_guess: Range<f64>,
     ) -> impl Iterator<Item = Result<Range<f64>, String>> {

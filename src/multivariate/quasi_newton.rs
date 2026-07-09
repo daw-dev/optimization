@@ -5,6 +5,7 @@ use crate::{
     optimizer::Optimize,
 };
 
+#[derive(Clone, Copy)]
 pub struct Bfgs<S> {
     stopping_criterion: S,
     difference: f64,
@@ -22,7 +23,7 @@ impl<S> Bfgs<S> {
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for Bfgs<Iterations>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut x0 = Column::<N, f64>::new_column(starting_guess);
         let mut h = SquareMatrix::<N, f64>::identity();
         let grad_fn = func.differentiate(self.difference);
@@ -78,7 +79,7 @@ impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optim
 impl<'a, const N: usize, F: crate::function::Function<[f64; N], f64> + 'a> Optimize<&'a F, [f64; N]>
     for Bfgs<Precision>
 {
-    fn optimize(&self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+    fn optimize(self, func: &'a F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
         let mut x0 = Column::<N, f64>::new_column(starting_guess);
         let mut h = SquareMatrix::<N, f64>::identity();
         let grad_fn = func.differentiate(self.difference);

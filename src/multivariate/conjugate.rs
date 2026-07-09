@@ -9,6 +9,7 @@ pub struct PerfectQuadraticProblem<const N: usize> {
     pub b: Column<N, f64>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Conjugate<const N: usize, S = Precision> {
     stopping_criterion: S,
 }
@@ -25,7 +26,7 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: PerfectQuadraticProblem<N>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<Column<N, f64>, String>> {
@@ -79,7 +80,7 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: PerfectQuadraticProblem<N>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<Column<N, f64>, String>> {

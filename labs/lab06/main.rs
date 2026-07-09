@@ -2,10 +2,10 @@
 #![allow(incomplete_features)]
 
 use optimization::{
+    helpers::Precision,
     linalg::{Column, Matrix},
     multivariate::constrained::{EqualityConstrainedQP, NewtonRaphsonQP},
     optimizer::TryOptimize,
-    helpers::Precision,
 };
 use plotly::{
     Layout, Plot, Scatter,

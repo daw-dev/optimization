@@ -1,6 +1,6 @@
+use crate::helpers::{Iterations, Precision};
 use crate::linalg::{Column, Matrix, SquareMatrix};
 use crate::optimizer::TryOptimize;
-use crate::helpers::{Iterations, Precision};
 
 pub struct EqualityConstrainedQP<const N: usize, const M: usize> {
     pub q: SquareMatrix<N, f64>,
@@ -15,6 +15,7 @@ pub struct QPStep<const N: usize, const M: usize> {
     pub lambda: Column<M, f64>,
 }
 
+#[derive(Clone, Copy)]
 pub struct NewtonRaphsonQP<const N: usize, const M: usize, S = Iterations> {
     pub stopping_criterion: S,
 }
@@ -26,14 +27,15 @@ impl<const N: usize, const M: usize, S> NewtonRaphsonQP<N, M, S> {
 }
 
 impl<const N: usize, const M: usize>
-    TryOptimize<EqualityConstrainedQP<N, M>, Column<N, f64>, QPStep<N, M>> for NewtonRaphsonQP<N, M, Iterations>
+    TryOptimize<EqualityConstrainedQP<N, M>, Column<N, f64>, QPStep<N, M>>
+    for NewtonRaphsonQP<N, M, Iterations>
 where
     [(); N + M]:,
 {
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
@@ -61,7 +63,10 @@ where
             // 3. Solve H_L * [p, lambda] = -g
             let solution = match h_l.solve(&(-g)) {
                 Ok(sol) => sol,
-                Err(_) => return Some(Err("Failed to solve KKT system: Linearly dependent constraints or singular matrix".into())),
+                Err(_) => return Some(Err(
+                    "Failed to solve KKT system: Linearly dependent constraints or singular matrix"
+                        .into(),
+                )),
             };
 
             // Extract the step p (size N) and the new lambda (size M)
@@ -78,14 +83,15 @@ where
 }
 
 impl<const N: usize, const M: usize>
-    TryOptimize<EqualityConstrainedQP<N, M>, Column<N, f64>, QPStep<N, M>> for NewtonRaphsonQP<N, M, Precision>
+    TryOptimize<EqualityConstrainedQP<N, M>, Column<N, f64>, QPStep<N, M>>
+    for NewtonRaphsonQP<N, M, Precision>
 where
     [(); N + M]:,
 {
     type Error = String;
 
     fn try_optimize(
-        &self,
+        self,
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
@@ -113,7 +119,10 @@ where
             // 3. Solve H_L * [p, lambda] = -g
             let solution = match h_l.solve(&(-g)) {
                 Ok(sol) => sol,
-                Err(_) => return Some(Err("Failed to solve KKT system: Linearly dependent constraints or singular matrix".into())),
+                Err(_) => return Some(Err(
+                    "Failed to solve KKT system: Linearly dependent constraints or singular matrix"
+                        .into(),
+                )),
             };
 
             // Extract the step p (size N) and the new lambda (size M)

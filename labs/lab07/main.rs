@@ -1,16 +1,17 @@
 use optimization::{
+    linalg::Column,
     multivariate::genetic::{
         BinaryGAProblem, BinaryGeneticAlgorithm, GeneticAlgorithm, RealGAProblem,
     },
     optimizer::Optimize,
-    linalg::Column,
 };
 use plotly::{Plot, Scatter};
 
 fn load_knapsack() -> (Vec<f64>, Vec<f64>) {
-    let content = std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
-        .or_else(|_| std::fs::read_to_string("knapsack.csv"))
-        .expect("Failed to read knapsack.csv");
+    let content =
+        std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
+            .or_else(|_| std::fs::read_to_string("knapsack.csv"))
+            .expect("Failed to read knapsack.csv");
     let mut weights = Vec::new();
     let mut values = Vec::new();
     for line in content.lines().skip(1) {
@@ -110,7 +111,10 @@ fn main() {
     let mut final_best_x_500 = None;
     let mut final_best_f_500 = 0.0;
 
-    for step in solver_binary_500.optimize(problem_500, ()).take(n_generations) {
+    for step in solver_binary_500
+        .optimize(problem_500, ())
+        .take(n_generations)
+    {
         generations_500.push(step_cnt_500 as f64);
         best_fitness_500.push(step.best_fitness);
         final_best_x_500 = step.best_x;
@@ -128,7 +132,10 @@ fn main() {
     }
 
     println!("  Mating Pool 500 Summary:");
-    println!("    Best Fitness: {:.1} (Optimum target = 4966)", final_best_f_500);
+    println!(
+        "    Best Fitness: {:.1} (Optimum target = 4966)",
+        final_best_f_500
+    );
     println!("    Total Weight: {:.1} / {}", final_weight_500, max_weight);
 
     let mut plot1 = Plot::new();
@@ -147,7 +154,9 @@ fn main() {
     let target_function = |x: &Column<2, f64>| -> f64 {
         let x1 = x[(0, 0)];
         let x2 = x[(1, 0)];
-        x1.powi(4) + x2.powi(4) - 4.0 * x1.powi(3) - 3.0 * x2.powi(3) + 2.0 * x1.powi(2) + 2.0 * x1 * x2
+        x1.powi(4) + x2.powi(4) - 4.0 * x1.powi(3) - 3.0 * x2.powi(3)
+            + 2.0 * x1.powi(2)
+            + 2.0 * x1 * x2
     };
 
     println!("Stage 1: Initial broad search in [-10.0, 10.0] x [-10.0, 10.0]");
@@ -175,7 +184,11 @@ fn main() {
     println!("  Stage 1 Results:");
     println!("    Best Cost: {:.5} (Target = -13.532)", final_real_f);
     if let Some(ref x) = final_real_x {
-        println!("    Best Position: [{:.5}, {:.5}] (Target = [2.67321, -0.675885])", x[(0, 0)], x[(1, 0)]);
+        println!(
+            "    Best Position: [{:.5}, {:.5}] (Target = [2.67321, -0.675885])",
+            x[(0, 0)],
+            x[(1, 0)]
+        );
     }
 
     println!("\nStage 2: Refined search in [0.0, 4.0] x [-2.0, 2.0]");
@@ -203,7 +216,11 @@ fn main() {
     println!("  Stage 2 Refined Results:");
     println!("    Best Cost: {:.6} (Target = -13.5320)", final_ref_f);
     if let Some(ref x) = final_ref_x {
-        println!("    Best Position: [{:.6}, {:.6}] (Target = [2.67321, -0.675885])", x[(0, 0)], x[(1, 0)]);
+        println!(
+            "    Best Position: [{:.6}, {:.6}] (Target = [2.67321, -0.675885])",
+            x[(0, 0)],
+            x[(1, 0)]
+        );
     }
 
     let mut plot2 = Plot::new();

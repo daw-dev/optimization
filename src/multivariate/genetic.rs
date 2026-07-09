@@ -22,7 +22,8 @@ impl<const N: usize, const POP_SIZE: usize> GAStep<N, POP_SIZE> {
         let mut population = [Column::default(); POP_SIZE];
         for i in 0..POP_SIZE {
             for j in 0..N {
-                population[i][(j, 0)] = bounds_min + (bounds_max - bounds_min) * rng.random::<f64>();
+                population[i][(j, 0)] =
+                    bounds_min + (bounds_max - bounds_min) * rng.random::<f64>();
             }
         }
 
@@ -34,6 +35,7 @@ impl<const N: usize, const POP_SIZE: usize> GAStep<N, POP_SIZE> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct GeneticAlgorithm<const N: usize, const POP_SIZE: usize> {
     pub mutation_rate: f64,
 }
@@ -50,7 +52,7 @@ where
     F: Fn(&Column<N, f64>) -> f64 + 'static,
 {
     fn optimize(
-        &self,
+        self,
         problem: RealGAProblem<F>,
         _starting_guess: (),
     ) -> impl Iterator<Item = GAStep<N, POP_SIZE>> {
@@ -185,6 +187,7 @@ impl<const N: usize, const POP_SIZE: usize> BinaryGAStep<N, POP_SIZE> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct BinaryGeneticAlgorithm<const N: usize, const POP_SIZE: usize> {
     pub mutation_probability: f64,
 }
@@ -197,13 +200,14 @@ impl<const N: usize, const POP_SIZE: usize> BinaryGeneticAlgorithm<N, POP_SIZE> 
     }
 }
 
-impl<F, const N: usize, const POP_SIZE: usize> Optimize<BinaryGAProblem<F>, (), BinaryGAStep<N, POP_SIZE>>
+impl<F, const N: usize, const POP_SIZE: usize>
+    Optimize<BinaryGAProblem<F>, (), BinaryGAStep<N, POP_SIZE>>
     for BinaryGeneticAlgorithm<N, POP_SIZE>
 where
     F: Fn(&[bool; N]) -> f64 + 'static,
 {
     fn optimize(
-        &self,
+        self,
         problem: BinaryGAProblem<F>,
         _starting_guess: (),
     ) -> impl Iterator<Item = BinaryGAStep<N, POP_SIZE>> {
@@ -237,11 +241,15 @@ where
 
                 let mut child_1 = [false; N];
                 let mut child_2 = [false; N];
-                child_1[..crossover_split_point].copy_from_slice(&parent_1[..crossover_split_point]);
-                child_1[crossover_split_point..].copy_from_slice(&parent_2[crossover_split_point..]);
+                child_1[..crossover_split_point]
+                    .copy_from_slice(&parent_1[..crossover_split_point]);
+                child_1[crossover_split_point..]
+                    .copy_from_slice(&parent_2[crossover_split_point..]);
 
-                child_2[..crossover_split_point].copy_from_slice(&parent_2[..crossover_split_point]);
-                child_2[crossover_split_point..].copy_from_slice(&parent_1[crossover_split_point..]);
+                child_2[..crossover_split_point]
+                    .copy_from_slice(&parent_2[..crossover_split_point]);
+                child_2[crossover_split_point..]
+                    .copy_from_slice(&parent_1[crossover_split_point..]);
 
                 offspring[i] = child_1;
                 offspring[i + 1] = child_2;
@@ -279,4 +287,3 @@ where
         })
     }
 }
-

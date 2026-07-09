@@ -5,9 +5,10 @@ use optimization::{
 use plotly::{Plot, Scatter};
 
 fn load_knapsack() -> (Vec<f64>, Vec<usize>) {
-    let content = std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
-        .or_else(|_| std::fs::read_to_string("knapsack.csv"))
-        .expect("Failed to read knapsack.csv");
+    let content =
+        std::fs::read_to_string("lab-instructions/11-lab7-Files for lab of May, 8th/knapsack.csv")
+            .or_else(|_| std::fs::read_to_string("knapsack.csv"))
+            .expect("Failed to read knapsack.csv");
     let mut weights = Vec::new();
     let mut values = Vec::new();
     for line in content.lines().skip(1) {
@@ -47,7 +48,11 @@ fn main() {
             if wt <= capacity {
                 let take_val = prev_row[capacity - wt] + val;
                 let skip_val = prev_row[capacity];
-                if take_val > skip_val { take_val } else { skip_val }
+                if take_val > skip_val {
+                    take_val
+                } else {
+                    skip_val
+                }
             } else {
                 prev_row[capacity]
             }
@@ -77,12 +82,20 @@ fn main() {
     }
 
     let final_1 = final_step1.expect("DP Small should run");
-    println!("  Optimal Value: {:.1} (Target = 12.0)", final_1.max_value_found);
+    println!(
+        "  Optimal Value: {:.1} (Target = 12.0)",
+        final_1.max_value_found
+    );
     let decisions1: [bool; 5] = final_1.optimal_decisions.unwrap();
     println!("  Chosen items (0-indexed):");
     for i in 0..decisions1.len() {
         if decisions1[i] {
-            println!("    Item {} (weight: {}, value: {})", i + 1, [4, 5, 2, 6, 1][i], [4.0, 3.0, 3.0, 7.0, 2.0][i]);
+            println!(
+                "    Item {} (weight: {}, value: {})",
+                i + 1,
+                [4, 5, 2, 6, 1][i],
+                [4.0, 3.0, 3.0, 7.0, 2.0][i]
+            );
         }
     }
 
@@ -111,7 +124,11 @@ fn main() {
             if wt <= capacity {
                 let take_val = prev_row[capacity - wt] + val;
                 let skip_val = prev_row[capacity];
-                if take_val > skip_val { take_val } else { skip_val }
+                if take_val > skip_val {
+                    take_val
+                } else {
+                    skip_val
+                }
             } else {
                 prev_row[capacity]
             }
@@ -141,7 +158,10 @@ fn main() {
     }
 
     let final_2 = final_step2.expect("DP Large should run");
-    println!("  Optimal Value: {:.1} (Target = 4966.0)", final_2.max_value_found);
+    println!(
+        "  Optimal Value: {:.1} (Target = 4966.0)",
+        final_2.max_value_found
+    );
 
     let decisions2: [bool; 100] = final_2.optimal_decisions.unwrap();
     let mut chosen_count = 0;

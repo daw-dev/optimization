@@ -2,13 +2,14 @@ use optimization::{
     multivariate::simulated_annealing::{SAProblem, SimulatedAnnealing},
     optimizer::Optimize,
 };
-use rand::RngExt;
 use plotly::{Plot, Scatter};
+use rand::RngExt;
 
 fn load_capitals() -> Vec<(f64, f64)> {
-    let content = std::fs::read_to_string("lab-instructions/12-lab8-Files for lab of May 13th/USA_cap.txt")
-        .or_else(|_| std::fs::read_to_string("USA_cap.txt"))
-        .expect("Failed to read USA_cap.txt");
+    let content =
+        std::fs::read_to_string("lab-instructions/12-lab8-Files for lab of May 13th/USA_cap.txt")
+            .or_else(|_| std::fs::read_to_string("USA_cap.txt"))
+            .expect("Failed to read USA_cap.txt");
     let mut coords = Vec::new();
     for line in content.lines() {
         if line.trim().is_empty() {
@@ -70,21 +71,31 @@ fn main() {
     };
 
     let problem_5 = SAProblem {
-        cost_function: energy_5,
+        cost_function: energy_5.clone(),
         neighbor_function: neighbor_5,
     };
 
     let solver_5 = SimulatedAnnealing::new(100.0, 0.95);
-    let mut final_step_5 = None;
+    let mut best_tour_5 = start_tour_5.clone();
+    let mut best_energy_5 = start_energy_5;
 
     // Run for 200 iterations
-    for step in solver_5.optimize(problem_5, start_tour_5).take(200) {
-        final_step_5 = Some(step);
+    for tour in solver_5.optimize(problem_5, start_tour_5).take(200) {
+        let energy = energy_5(&tour);
+        if energy < best_energy_5 {
+            best_energy_5 = energy;
+            best_tour_5 = tour;
+        }
     }
 
-    let final_5 = final_step_5.unwrap();
-    println!("  Starting Tour: [0, 1, 2, 3, 4] with length: {}", start_energy_5);
-    println!("  Optimal Tour:  {:?} with length: {:.1} (Target = 19.0)", final_5.best_state, final_5.best_cost);
+    println!(
+        "  Starting Tour: [0, 1, 2, 3, 4] with length: {}",
+        start_energy_5
+    );
+    println!(
+        "  Optimal Tour:  {:?} with length: {:.1} (Target = 19.0)",
+        best_tour_5, best_energy_5
+    );
 
     // -------------------------------------------------------------------------
     // Exercise 2: 48 USA State Capitals
@@ -131,7 +142,10 @@ fn main() {
     let alpha: f64 = tau.powf(1.0 / n_steps as f64);
 
     println!("Starting Simulated Annealing...");
-    println!("  t0 = {:.1}, alpha = {:.6}, steps = {}", t0, alpha, n_steps);
+    println!(
+        "  t0 = {:.1}, alpha = {:.6}, steps = {}",
+        t0, alpha, n_steps
+    );
 
     let neighbor_cap = |tour: &[usize; 48]| -> [usize; 48] {
         let mut rng = rand::rng();
@@ -150,7 +164,7 @@ fn main() {
     };
 
     let problem_cap = SAProblem {
-        cost_function: energy_cap,
+        cost_function: energy_cap.clone(),
         neighbor_function: neighbor_cap,
     };
 
@@ -158,22 +172,33 @@ fn main() {
     let mut iterations = Vec::new();
     let mut current_lengths = Vec::new();
     let mut best_lengths = Vec::new();
-    let mut final_step = None;
+    let mut best_tour = start_tour.clone();
+    let mut best_energy = start_energy;
 
     // We can sample plots every 500 steps to keep plotly light
-    for (i, step) in solver_cap.optimize(problem_cap, start_tour).take(n_steps).enumerate() {
+    for (i, tour) in solver_cap
+        .optimize(problem_cap, start_tour)
+        .take(n_steps)
+        .enumerate()
+    {
+        let current_cost = energy_cap(&tour);
+        if current_cost < best_energy {
+            best_energy = current_cost;
+            best_tour = tour;
+        }
         if i % 500 == 0 {
             iterations.push(i as f64);
-            current_lengths.push(step.current_cost);
-            best_lengths.push(step.best_cost);
+            current_lengths.push(current_cost);
+            best_lengths.push(best_energy);
         }
-        final_step = Some(step);
     }
 
-    let final_step = final_step.unwrap();
     println!("  Initial Tour Length: {:.1}", start_energy);
-    println!("  Final Tour Length:   {:.1} (Minimal target = 33523.0)", final_step.best_cost);
-    println!("  Best Tour Order:     {:?}", final_step.best_state);
+    println!(
+        "  Final Tour Length:   {:.1} (Minimal target = 33523.0)",
+        best_energy
+    );
+    println!("  Best Tour Order:     {:?}", best_tour);
 
     // Plotting
     let mut plot1 = Plot::new();
@@ -188,13 +213,13 @@ fn main() {
     // Coordinate Plot for best tour
     let mut tour_x = Vec::new();
     let mut tour_y = Vec::new();
-    for &idx in &final_step.best_state {
+    for &idx in &best_tour {
         tour_x.push(coords[idx].0);
         tour_y.push(coords[idx].1);
     }
     // Return to start
-    if !final_step.best_state.is_empty() {
-        let first_idx = final_step.best_state[0];
+    if !best_tour.is_empty() {
+        let first_idx = best_tour[0];
         tour_x.push(coords[first_idx].0);
         tour_y.push(coords[first_idx].1);
     }

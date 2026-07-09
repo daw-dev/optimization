@@ -23,16 +23,18 @@ pub struct DPStep<Decision, const N: usize> {
     pub optimal_decisions: Option<[Decision; N]>,
 }
 
+#[derive(Clone, Copy)]
 pub struct DynamicProgramming;
 
-impl<F, B, Decision, const N: usize> Optimize<DPProblem<F, B>, (), DPStep<Decision, N>> for DynamicProgramming
+impl<F, B, Decision, const N: usize> Optimize<DPProblem<F, B>, (), DPStep<Decision, N>>
+    for DynamicProgramming
 where
     F: Fn(usize, usize, &[f64]) -> f64 + 'static,
     B: Fn(usize, &mut usize, &[Vec<f64>]) -> Decision + 'static,
     Decision: Default + Clone + Copy + 'static,
 {
     fn optimize(
-        &self,
+        self,
         problem: DPProblem<F, B>,
         _starting_guess: (),
     ) -> impl Iterator<Item = DPStep<Decision, N>> {
@@ -55,7 +57,8 @@ where
             // Fill row `current_stage + 1` of the DP table
             for s in 0..state_space_size {
                 let prev_row = &current.dp_table[current_stage];
-                current.dp_table[current_stage + 1][s] = (problem.transition_function)(current_stage, s, prev_row);
+                current.dp_table[current_stage + 1][s] =
+                    (problem.transition_function)(current_stage, s, prev_row);
             }
 
             current_stage += 1;
@@ -67,7 +70,8 @@ where
                 let mut decisions = [Decision::default(); N];
                 let mut current_state = state_space_size - 1;
                 for stage in (1..=N).rev() {
-                    decisions[stage - 1] = (problem.backtrack_function)(stage, &mut current_state, &current.dp_table);
+                    decisions[stage - 1] =
+                        (problem.backtrack_function)(stage, &mut current_state, &current.dp_table);
                 }
                 current.optimal_decisions = Some(decisions);
             }
