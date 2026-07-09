@@ -3,8 +3,9 @@
 
 use optimization::{
     linalg::{Column, Matrix},
-    multivariate::constrained::{EqualityConstrainedQP, NewtonRaphsonQP, QPStep},
+    multivariate::constrained::{EqualityConstrainedQP, NewtonRaphsonQP},
     optimizer::TryOptimize,
+    helpers::Precision,
 };
 use plotly::{
     Layout, Plot, Scatter,
@@ -43,8 +44,8 @@ fn main() {
         b: b1,
     };
 
-    let start_guess1 = QPStep::from(Column::new_column([0.0, 0.0, 0.0]));
-    let solver1 = NewtonRaphsonQP::<3, 2>;
+    let start_guess1 = Column::new_column([0.0, 0.0, 0.0]);
+    let solver1 = NewtonRaphsonQP::<3, 2, Precision>::new(Precision(1e-7));
 
     println!("Starting Guess x0: [0.0, 0.0, 0.0]");
     println!("Solving KKT System...");
@@ -140,8 +141,8 @@ fn main() {
         b: b2,
     };
 
-    let start_guess2 = QPStep::from(Column::new_column([0.0, 0.0]));
-    let solver2 = NewtonRaphsonQP::<2, 1>;
+    let start_guess2 = Column::new_column([0.0, 0.0]);
+    let solver2 = NewtonRaphsonQP::<2, 1, Precision>::new(Precision(1e-7));
 
     let mut path_x1 = vec![0.0];
     let mut path_x2 = vec![0.0];

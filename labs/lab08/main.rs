@@ -1,7 +1,8 @@
 use optimization::{
-    multivariate::simulated_annealing::{SAProblem, SAStep, SimulatedAnnealing},
-    optimizer::TryOptimize,
+    multivariate::simulated_annealing::{SAProblem, SimulatedAnnealing},
+    optimizer::Optimize,
 };
+use rand::RngExt;
 use plotly::{Plot, Scatter};
 
 fn load_capitals() -> Vec<(f64, f64)> {
@@ -49,30 +50,41 @@ fn main() {
         }
         d
     };
-
     let start_tour_5 = [0, 1, 2, 3, 4];
     let start_energy_5 = energy_5(&start_tour_5);
-    let start_step_5 = SAStep::<5>::new(start_tour_5, start_energy_5, 100.0);
 
-    let problem_5 = SAProblem::<_, 5> {
-        cost_function: energy_5,
-        initial_temperature: 100.0,
-        cooling_rate: 0.95,
+    let neighbor_5 = |tour: &[usize; 5]| -> [usize; 5] {
+        let mut rng = rand::rng();
+        let mut next_tour = *tour;
+        let city_idx_1 = rng.random_range(0..5);
+        let city_idx_2 = rng.random_range(0..5);
+        if city_idx_1 != city_idx_2 {
+            let (start, end) = if city_idx_1 < city_idx_2 {
+                (city_idx_1, city_idx_2)
+            } else {
+                (city_idx_2, city_idx_1)
+            };
+            next_tour[start..=end].reverse();
+        }
+        next_tour
     };
 
-    let solver = SimulatedAnnealing;
+    let problem_5 = SAProblem {
+        cost_function: energy_5,
+        neighbor_function: neighbor_5,
+    };
+
+    let solver_5 = SimulatedAnnealing::new(100.0, 0.95);
     let mut final_step_5 = None;
 
     // Run for 200 iterations
-    for res in solver.try_optimize(problem_5, start_step_5).take(200) {
-        if let Ok(step) = res {
-            final_step_5 = Some(step);
-        }
+    for step in solver_5.optimize(problem_5, start_tour_5).take(200) {
+        final_step_5 = Some(step);
     }
 
     let final_5 = final_step_5.unwrap();
     println!("  Starting Tour: [0, 1, 2, 3, 4] with length: {}", start_energy_5);
-    println!("  Optimal Tour:  {:?} with length: {:.1} (Target = 19.0)", final_5.best_tour, final_5.best_cost);
+    println!("  Optimal Tour:  {:?} with length: {:.1} (Target = 19.0)", final_5.best_state, final_5.best_cost);
 
     // -------------------------------------------------------------------------
     // Exercise 2: 48 USA State Capitals
@@ -121,34 +133,47 @@ fn main() {
     println!("Starting Simulated Annealing...");
     println!("  t0 = {:.1}, alpha = {:.6}, steps = {}", t0, alpha, n_steps);
 
-    let start_step = SAStep::<48>::new(start_tour, start_energy, t0);
-    let problem_cap = SAProblem::<_, 48> {
-        cost_function: energy_cap,
-        initial_temperature: t0,
-        cooling_rate: alpha,
+    let neighbor_cap = |tour: &[usize; 48]| -> [usize; 48] {
+        let mut rng = rand::rng();
+        let mut next_tour = *tour;
+        let city_idx_1 = rng.random_range(0..48);
+        let city_idx_2 = rng.random_range(0..48);
+        if city_idx_1 != city_idx_2 {
+            let (start, end) = if city_idx_1 < city_idx_2 {
+                (city_idx_1, city_idx_2)
+            } else {
+                (city_idx_2, city_idx_1)
+            };
+            next_tour[start..=end].reverse();
+        }
+        next_tour
     };
 
+    let problem_cap = SAProblem {
+        cost_function: energy_cap,
+        neighbor_function: neighbor_cap,
+    };
+
+    let solver_cap = SimulatedAnnealing::new(t0, alpha);
     let mut iterations = Vec::new();
     let mut current_lengths = Vec::new();
     let mut best_lengths = Vec::new();
     let mut final_step = None;
 
     // We can sample plots every 500 steps to keep plotly light
-    for (i, res) in solver.try_optimize(problem_cap, start_step).take(n_steps).enumerate() {
-        if let Ok(step) = res {
-            if i % 500 == 0 {
-                iterations.push(i as f64);
-                current_lengths.push(step.current_cost);
-                best_lengths.push(step.best_cost);
-            }
-            final_step = Some(step);
+    for (i, step) in solver_cap.optimize(problem_cap, start_tour).take(n_steps).enumerate() {
+        if i % 500 == 0 {
+            iterations.push(i as f64);
+            current_lengths.push(step.current_cost);
+            best_lengths.push(step.best_cost);
         }
+        final_step = Some(step);
     }
 
     let final_step = final_step.unwrap();
     println!("  Initial Tour Length: {:.1}", start_energy);
     println!("  Final Tour Length:   {:.1} (Minimal target = 33523.0)", final_step.best_cost);
-    println!("  Best Tour Order:     {:?}", final_step.best_tour);
+    println!("  Best Tour Order:     {:?}", final_step.best_state);
 
     // Plotting
     let mut plot1 = Plot::new();
@@ -163,13 +188,13 @@ fn main() {
     // Coordinate Plot for best tour
     let mut tour_x = Vec::new();
     let mut tour_y = Vec::new();
-    for &idx in &final_step.best_tour {
+    for &idx in &final_step.best_state {
         tour_x.push(coords[idx].0);
         tour_y.push(coords[idx].1);
     }
     // Return to start
-    if !final_step.best_tour.is_empty() {
-        let first_idx = final_step.best_tour[0];
+    if !final_step.best_state.is_empty() {
+        let first_idx = final_step.best_state[0];
         tour_x.push(coords[first_idx].0);
         tour_y.push(coords[first_idx].1);
     }

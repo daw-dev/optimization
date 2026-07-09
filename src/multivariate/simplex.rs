@@ -94,7 +94,6 @@ impl<const V: usize, const C: usize> TryOptimize<LinearProgram<V, C>, SimplexGue
                 let a_tilde = b_inv * a_j_en;
                 let b_tilde = b_inv * problem.b;
 
-                // 7. Unboundedness test
                 let mut is_unbounded = true;
                 for i in 0..C {
                     if a_tilde.0[i][0] > 1e-9 {

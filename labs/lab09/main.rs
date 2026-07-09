@@ -1,6 +1,6 @@
 use optimization::{
-    multivariate::branch_bound::{BBStep, BranchAndBound, MILPProblem},
-    optimizer::TryOptimize,
+    multivariate::branch_bound::{BranchAndBound, MILPProblem},
+    optimizer::Optimize,
 };
 use plotly::{Plot, Scatter};
 
@@ -53,7 +53,6 @@ fn main() {
         constraint_rhs: b,
     };
 
-    let start_step1 = BBStep::<4>::new();
     let solver = BranchAndBound;
 
     let mut nodes_visited = Vec::new();
@@ -61,17 +60,15 @@ fn main() {
     let mut step_count = 0;
     let mut final_step1 = None;
 
-    for res in solver.try_optimize(problem1, start_step1) {
-        if let Ok(step) = res {
-            nodes_visited.push(step_count as f64);
-            best_y_vals.push(step.best_y);
-            step_count += 1;
-            println!(
-                "  Node {}: best_y = {:.2}, active_nodes = {}",
-                step_count, step.best_y, step.active_nodes
-            );
-            final_step1 = Some(step);
-        }
+    for step in solver.optimize(problem1, ()) {
+        nodes_visited.push(step_count as f64);
+        best_y_vals.push(step.best_y);
+        step_count += 1;
+        println!(
+            "  Node {}: best_y = {:.2}, active_nodes = {}",
+            step_count, step.best_y, step.active_nodes
+        );
+        final_step1 = Some(step);
     }
 
     let final_1 = final_step1.expect("B&B should run at least one node");
@@ -108,7 +105,6 @@ fn main() {
         constraint_rhs: b_knap,
     };
 
-    let start_step2 = BBStep::<100>::new();
     println!("Running Branch & Bound for Knapsack (100 variables)...");
 
     let mut nodes_visited_knap = Vec::new();
@@ -116,20 +112,18 @@ fn main() {
     let mut step_count_knap = 0;
     let mut final_step2 = None;
 
-    for res in solver.try_optimize(problem2, start_step2) {
-        if let Ok(step) = res {
-            // Print status updates periodically to avoid huge terminal output
-            if step_count_knap % 100 == 0 {
-                println!(
-                    "  Evaluated {} nodes... best_value = {:.1}, active_nodes_in_stack = {}",
-                    step_count_knap, -step.best_y, step.active_nodes
-                );
-            }
-            nodes_visited_knap.push(step_count_knap as f64);
-            best_y_knap.push(-step.best_y); // Plot as positive value
-            step_count_knap += 1;
-            final_step2 = Some(step);
+    for step in solver.optimize(problem2, ()) {
+        // Print status updates periodically to avoid huge terminal output
+        if step_count_knap % 100 == 0 {
+            println!(
+                "  Evaluated {} nodes... best_value = {:.1}, active_nodes_in_stack = {}",
+                step_count_knap, -step.best_y, step.active_nodes
+            );
         }
+        nodes_visited_knap.push(step_count_knap as f64);
+        best_y_knap.push(-step.best_y); // Plot as positive value
+        step_count_knap += 1;
+        final_step2 = Some(step);
     }
 
     let final_2 = final_step2.expect("B&B Knapsack should run");

@@ -1,5 +1,5 @@
 use crate::{
-    helpers::Precision,
+    helpers::{Iterations, Precision},
     linalg::{Column, SquareMatrix},
     optimizer::TryOptimize,
 };
@@ -70,6 +70,59 @@ impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
                 Some(Ok(x))
             })
             .flatten()
+    }
+}
+
+impl<const N: usize> TryOptimize<PerfectQuadraticProblem<N>, Column<N, f64>>
+    for Conjugate<N, Iterations>
+{
+    type Error = String;
+
+    fn try_optimize(
+        &self,
+        problem: PerfectQuadraticProblem<N>,
+        starting_guess: Column<N, f64>,
+    ) -> impl Iterator<Item = Result<Column<N, f64>, String>> {
+        let matrix = problem.matrix;
+        let b = problem.b;
+        let mut x = starting_guess;
+
+        let qx = matrix * x;
+        let mut g = qx - b;
+
+        let mut d = -g;
+        let limit = self.stopping_criterion.0;
+        let mut count = 0;
+
+        std::iter::from_fn(move || {
+            if count >= limit {
+                return None;
+            }
+
+            let qd = matrix * d;
+
+            let den = (d.transpose() * qd).into_value();
+
+            if den.abs() < f64::EPSILON {
+                return Some(Err(
+                    "Division by zero: Q matrix might not be positive definite".into(),
+                ));
+            }
+
+            let alpha = -(g.transpose() * d).into_value() / den;
+
+            x += d * alpha;
+
+            let g_next = g + qd * alpha;
+
+            let beta = (g_next.transpose() * qd).into_value() / den;
+
+            d = -g_next + d * beta;
+
+            g = g_next;
+            count += 1;
+            Some(Ok(x))
+        })
     }
 }
 

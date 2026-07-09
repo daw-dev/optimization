@@ -1,13 +1,12 @@
 use rand::RngExt;
 
 use crate::linalg::Column;
-use crate::optimizer::TryOptimize;
+use crate::optimizer::Optimize;
 
 pub struct RealGAProblem<F> {
     pub objective: F,
     pub bounds_min: f64,
     pub bounds_max: f64,
-    pub mutation_rate: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -35,22 +34,29 @@ impl<const N: usize, const POP_SIZE: usize> GAStep<N, POP_SIZE> {
     }
 }
 
-pub struct GeneticAlgorithm<const N: usize, const POP_SIZE: usize>;
+pub struct GeneticAlgorithm<const N: usize, const POP_SIZE: usize> {
+    pub mutation_rate: f64,
+}
 
-impl<const N: usize, const POP_SIZE: usize, F> TryOptimize<RealGAProblem<F>, GAStep<N, POP_SIZE>, GAStep<N, POP_SIZE>>
+impl<const N: usize, const POP_SIZE: usize> GeneticAlgorithm<N, POP_SIZE> {
+    pub fn new(mutation_rate: f64) -> Self {
+        Self { mutation_rate }
+    }
+}
+
+impl<const N: usize, const POP_SIZE: usize, F> Optimize<RealGAProblem<F>, (), GAStep<N, POP_SIZE>>
     for GeneticAlgorithm<N, POP_SIZE>
 where
-    F: Fn(&Column<N, f64>) -> f64 + Clone + 'static,
+    F: Fn(&Column<N, f64>) -> f64 + 'static,
 {
-    type Error = String;
-
-    fn try_optimize(
+    fn optimize(
         &self,
         problem: RealGAProblem<F>,
-        starting_guess: GAStep<N, POP_SIZE>,
-    ) -> impl Iterator<Item = Result<GAStep<N, POP_SIZE>, Self::Error>> {
-        let mut current = starting_guess;
+        _starting_guess: (),
+    ) -> impl Iterator<Item = GAStep<N, POP_SIZE>> {
+        let mut current = GAStep::new(problem.bounds_min, problem.bounds_max);
         let l_scale = (problem.bounds_max - problem.bounds_min).abs();
+        let mutation_rate = self.mutation_rate;
 
         std::iter::from_fn(move || {
             let mut rng = rand::rng();
@@ -128,7 +134,7 @@ where
                 }
 
                 for child in [&mut c1, &mut c2] {
-                    if rng.random::<f64>() <= problem.mutation_rate {
+                    if rng.random::<f64>() <= mutation_rate {
                         for j in 0..N {
                             child[(j, 0)] += l_scale * 0.05 * (rng.random::<f64>() - 0.5);
                         }
@@ -142,16 +148,14 @@ where
 
             current.population = next_pop;
 
-            Some(Ok(current.clone()))
+            Some(current.clone())
         })
     }
 }
 
-pub struct BinaryGAProblem<F, const N: usize, const POP_SIZE: usize> {
+pub struct BinaryGAProblem<F> {
     /// Fitness function to maximize
     pub fitness_function: F,
-    /// Probability of flipping each bit during mutation
-    pub mutation_probability: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -181,20 +185,30 @@ impl<const N: usize, const POP_SIZE: usize> BinaryGAStep<N, POP_SIZE> {
     }
 }
 
-pub struct BinaryGeneticAlgorithm;
+pub struct BinaryGeneticAlgorithm<const N: usize, const POP_SIZE: usize> {
+    pub mutation_probability: f64,
+}
 
-impl<F, const N: usize, const POP_SIZE: usize> TryOptimize<BinaryGAProblem<F, N, POP_SIZE>, BinaryGAStep<N, POP_SIZE>, BinaryGAStep<N, POP_SIZE>> for BinaryGeneticAlgorithm
+impl<const N: usize, const POP_SIZE: usize> BinaryGeneticAlgorithm<N, POP_SIZE> {
+    pub fn new(mutation_probability: f64) -> Self {
+        Self {
+            mutation_probability,
+        }
+    }
+}
+
+impl<F, const N: usize, const POP_SIZE: usize> Optimize<BinaryGAProblem<F>, (), BinaryGAStep<N, POP_SIZE>>
+    for BinaryGeneticAlgorithm<N, POP_SIZE>
 where
-    F: Fn(&[bool; N]) -> f64 + Clone + 'static,
+    F: Fn(&[bool; N]) -> f64 + 'static,
 {
-    type Error = String;
-
-    fn try_optimize(
+    fn optimize(
         &self,
-        problem: BinaryGAProblem<F, N, POP_SIZE>,
-        starting_guess: BinaryGAStep<N, POP_SIZE>,
-    ) -> impl Iterator<Item = Result<BinaryGAStep<N, POP_SIZE>, Self::Error>> {
-        let mut current = starting_guess;
+        problem: BinaryGAProblem<F>,
+        _starting_guess: (),
+    ) -> impl Iterator<Item = BinaryGAStep<N, POP_SIZE>> {
+        let mut current = BinaryGAStep::new();
+        let mutation_probability = self.mutation_probability;
 
         std::iter::from_fn(move || {
             let mut rng = rand::rng();
@@ -237,7 +251,7 @@ where
             // 3. Mutation (Bit-flip mutation based on mutation probability)
             for individual in &mut offspring {
                 for gene in individual.iter_mut() {
-                    if rng.random::<f64>() <= problem.mutation_probability {
+                    if rng.random::<f64>() <= mutation_probability {
                         *gene = !*gene;
                     }
                 }
@@ -261,7 +275,7 @@ where
                 current.best_x = Some(current.population[current_generation_best_index]);
             }
 
-            Some(Ok(current.clone()))
+            Some(current.clone())
         })
     }
 }

@@ -156,3 +156,77 @@ where
         })
     }
 }
+
+impl<const N: usize, F: Function<[f64; N], f64>, LS, Error> TryOptimize<&F, [f64; N]>
+    for SteepestGradientDescent<LS, Iterations>
+where
+    LS: for<'a> TryOptimize<&'a dyn Function<f64, f64>, Range<f64>, Error = Error>,
+{
+    type Error = Error;
+
+    fn try_optimize(
+        &self,
+        func: &F,
+        starting_guess: [f64; N],
+    ) -> impl Iterator<Item = Result<[f64; N], Self::Error>> {
+        let mut guess = starting_guess;
+        let mut count = 0;
+        let limit = self.stopping_criterion.0;
+
+        std::iter::once(Ok(starting_guess)).chain(std::iter::from_fn(move || {
+            if count >= limit {
+                return None;
+            }
+            let gradient = func.differentiate(self.gradient_precision);
+            let computed = gradient.compute(guess);
+            let line_search_func = move |step: f64| {
+                func.compute(array::from_fn(|i| guess[i] - step * computed[i]))
+            };
+            let step_range = match self
+                .line_search
+                .try_solution(&line_search_func, self.line_search_starting_guess.clone())
+            {
+                Ok(step_range) => step_range,
+                Err(reason) => return Some(Err(reason)),
+            };
+            let step = (step_range.start + step_range.end) / 2.0;
+            for i in 0..N {
+                guess[i] = guess[i] - step * computed[i];
+            }
+            count += 1;
+            Some(Ok(guess))
+        }))
+    }
+}
+
+impl<const N: usize, F: Function<[f64; N], f64>, LS> Optimize<&F, [f64; N]>
+    for SteepestGradientDescent<LS, Iterations>
+where
+    LS: for<'a> Optimize<&'a dyn Function<f64, f64>, Range<f64>>,
+{
+    fn optimize(&self, func: &F, starting_guess: [f64; N]) -> impl Iterator<Item = [f64; N]> {
+        let mut guess = starting_guess;
+        let mut count = 0;
+        let limit = self.stopping_criterion.0;
+
+        std::iter::once(starting_guess).chain(std::iter::from_fn(move || {
+            if count >= limit {
+                return None;
+            }
+            let gradient = func.differentiate(self.gradient_precision);
+            let computed = gradient.compute(guess);
+            let line_search_func = move |step: f64| {
+                func.compute(array::from_fn(|i| guess[i] - step * computed[i]))
+            };
+            let step_range = self
+                .line_search
+                .solution(&line_search_func, self.line_search_starting_guess.clone());
+            let step = (step_range.start + step_range.end) / 2.0;
+            for i in 0..N {
+                guess[i] = guess[i] - step * computed[i];
+            }
+            count += 1;
+            Some(guess)
+        }))
+    }
+}

@@ -1,9 +1,8 @@
 use optimization::{
     multivariate::genetic::{
-        BinaryGAProblem, BinaryGAStep, BinaryGeneticAlgorithm, GAStep, GeneticAlgorithm,
-        RealGAProblem,
+        BinaryGAProblem, BinaryGeneticAlgorithm, GeneticAlgorithm, RealGAProblem,
     },
-    optimizer::TryOptimize,
+    optimizer::Optimize,
     linalg::Column,
 };
 use plotly::{Plot, Scatter};
@@ -64,14 +63,11 @@ fn main() {
     let pmut = 0.01;
     let n_generations = 300;
 
-    let solver_binary = BinaryGeneticAlgorithm;
-
     // Test with mating pool size 50
     println!("Running GA with mating pool size 50...");
-    let starting_guess_50 = BinaryGAStep::<100, 50>::new();
+    let solver_binary = BinaryGeneticAlgorithm::<100, 50>::new(pmut);
     let problem_50 = BinaryGAProblem {
         fitness_function: fitness_fn.clone(),
-        mutation_probability: pmut,
     };
 
     let mut generations_50 = Vec::new();
@@ -80,14 +76,12 @@ fn main() {
     let mut final_best_x_50 = None;
     let mut final_best_f_50 = 0.0;
 
-    for res in solver_binary.try_optimize(problem_50, starting_guess_50).take(n_generations) {
-        if let Ok(step) = res {
-            generations_50.push(step_cnt as f64);
-            best_fitness_50.push(step.best_fitness);
-            final_best_x_50 = step.best_x;
-            final_best_f_50 = step.best_fitness;
-            step_cnt += 1;
-        }
+    for step in solver_binary.optimize(problem_50, ()).take(n_generations) {
+        generations_50.push(step_cnt as f64);
+        best_fitness_50.push(step.best_fitness);
+        final_best_x_50 = step.best_x;
+        final_best_f_50 = step.best_fitness;
+        step_cnt += 1;
     }
 
     let mut final_weight_50 = 0.0;
@@ -105,10 +99,9 @@ fn main() {
 
     // Test with mating pool size 500
     println!("Running GA with mating pool size 500...");
-    let starting_guess_500 = BinaryGAStep::<100, 500>::new();
+    let solver_binary_500 = BinaryGeneticAlgorithm::<100, 500>::new(pmut);
     let problem_500 = BinaryGAProblem {
         fitness_function: fitness_fn.clone(),
-        mutation_probability: pmut,
     };
 
     let mut generations_500 = Vec::new();
@@ -117,14 +110,12 @@ fn main() {
     let mut final_best_x_500 = None;
     let mut final_best_f_500 = 0.0;
 
-    for res in solver_binary.try_optimize(problem_500, starting_guess_500).take(n_generations) {
-        if let Ok(step) = res {
-            generations_500.push(step_cnt_500 as f64);
-            best_fitness_500.push(step.best_fitness);
-            final_best_x_500 = step.best_x;
-            final_best_f_500 = step.best_fitness;
-            step_cnt_500 += 1;
-        }
+    for step in solver_binary_500.optimize(problem_500, ()).take(n_generations) {
+        generations_500.push(step_cnt_500 as f64);
+        best_fitness_500.push(step.best_fitness);
+        final_best_x_500 = step.best_x;
+        final_best_f_500 = step.best_fitness;
+        step_cnt_500 += 1;
     }
 
     let mut final_weight_500 = 0.0;
@@ -164,10 +155,8 @@ fn main() {
         objective: target_function,
         bounds_min: -10.0,
         bounds_max: 10.0,
-        mutation_rate: 0.15,
     };
-    let start_real = GAStep::<2, 100>::new(-10.0, 10.0);
-    let solver_real = GeneticAlgorithm::<2, 100>;
+    let solver_real = GeneticAlgorithm::<2, 100>::new(0.15);
 
     let mut real_generations = Vec::new();
     let mut real_best_costs = Vec::new();
@@ -175,14 +164,12 @@ fn main() {
     let mut final_real_x = None;
     let mut final_real_f = f64::INFINITY;
 
-    for res in solver_real.try_optimize(problem_real, start_real).take(150) {
-        if let Ok(step) = res {
-            real_generations.push(step_real as f64);
-            real_best_costs.push(step.best_f);
-            final_real_x = step.best_x.clone();
-            final_real_f = step.best_f;
-            step_real += 1;
-        }
+    for step in solver_real.optimize(problem_real, ()).take(150) {
+        real_generations.push(step_real as f64);
+        real_best_costs.push(step.best_f);
+        final_real_x = step.best_x.clone();
+        final_real_f = step.best_f;
+        step_real += 1;
     }
 
     println!("  Stage 1 Results:");
@@ -196,10 +183,8 @@ fn main() {
         objective: target_function,
         bounds_min: -2.0, // using the helper bounds
         bounds_max: 4.0,
-        mutation_rate: 0.1,
     };
-    // Since the original bounds are [-2.0, 4.0], let's initialize step
-    let start_refined = GAStep::<2, 100>::new(-2.0, 4.0);
+    let solver_refined = GeneticAlgorithm::<2, 100>::new(0.1);
 
     let mut refined_generations = Vec::new();
     let mut refined_best_costs = Vec::new();
@@ -207,14 +192,12 @@ fn main() {
     let mut final_ref_x = None;
     let mut final_ref_f = f64::INFINITY;
 
-    for res in solver_real.try_optimize(problem_refined, start_refined).take(100) {
-        if let Ok(step) = res {
-            refined_generations.push(step_ref as f64);
-            refined_best_costs.push(step.best_f);
-            final_ref_x = step.best_x.clone();
-            final_ref_f = step.best_f;
-            step_ref += 1;
-        }
+    for step in solver_refined.optimize(problem_refined, ()).take(100) {
+        refined_generations.push(step_ref as f64);
+        refined_best_costs.push(step.best_f);
+        final_ref_x = step.best_x.clone();
+        final_ref_f = step.best_f;
+        step_ref += 1;
     }
 
     println!("  Stage 2 Refined Results:");

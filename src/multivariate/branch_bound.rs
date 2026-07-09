@@ -1,4 +1,4 @@
-use crate::optimizer::TryOptimize;
+use crate::optimizer::Optimize;
 
 /// Mixed-Integer Linear Program (MILP) Problem
 pub struct MILPProblem<const N: usize, const M: usize> {
@@ -227,22 +227,16 @@ pub fn solve_lp<const N: usize, const M: usize>(
     Some((optimal_lp_value, full_variable_solutions))
 }
 
-impl<const N: usize, const M: usize> TryOptimize<MILPProblem<N, M>, BBStep<N>, BBStep<N>> for BranchAndBound {
-    type Error = String;
-
-    fn try_optimize(
+impl<const N: usize, const M: usize> Optimize<MILPProblem<N, M>, (), BBStep<N>> for BranchAndBound {
+    fn optimize(
         &self,
         problem: MILPProblem<N, M>,
-        starting_guess: BBStep<N>,
-    ) -> impl Iterator<Item = Result<BBStep<N>, Self::Error>> {
+        _starting_guess: (),
+    ) -> impl Iterator<Item = BBStep<N>> {
         let mut stack = Vec::new();
-        if let Some(node) = starting_guess.current_node.clone() {
-            stack.push(node);
-        } else {
-            stack.push(([0.0; N], [1.0; N]));
-        }
+        stack.push(([0.0; N], [1.0; N]));
 
-        let mut current_step = starting_guess;
+        let mut current_step = BBStep::<N>::new();
 
         std::iter::from_fn(move || {
             let (lower_bounds, upper_bounds) = match stack.pop() {
@@ -264,12 +258,12 @@ impl<const N: usize, const M: usize> TryOptimize<MILPProblem<N, M>, BBStep<N>, B
             match lp_res {
                 None => {
                     // Infeasible node, prune branch
-                    Some(Ok(current_step.clone()))
+                    Some(current_step.clone())
                 }
                 Some((relaxed_objective_val, relaxed_variable_values)) => {
                     // Prune by bound (relaxed objective val is worse than best integer solution found)
                     if relaxed_objective_val >= current_step.best_y - 1e-7 {
-                        Some(Ok(current_step.clone()))
+                        Some(current_step.clone())
                     } else {
                         // Find the most fractional variable index
                         let mut split_variable_idx = None;
@@ -287,7 +281,7 @@ impl<const N: usize, const M: usize> TryOptimize<MILPProblem<N, M>, BBStep<N>, B
                         if min_dist_from_half > 0.499 {
                             current_step.best_y = relaxed_objective_val;
                             current_step.best_x = Some(relaxed_variable_values);
-                            Some(Ok(current_step.clone()))
+                            Some(current_step.clone())
                         } else {
                             // Branch on the split variable index
                             if let Some(j) = split_variable_idx {
@@ -302,7 +296,7 @@ impl<const N: usize, const M: usize> TryOptimize<MILPProblem<N, M>, BBStep<N>, B
                                 stack.push((lower_bounds.clone(), left_upper_bounds));
                             }
                             current_step.active_nodes = stack.len();
-                            Some(Ok(current_step.clone()))
+                            Some(current_step.clone())
                         }
                     }
                 }
@@ -351,19 +345,16 @@ mod tests {
             constraint_rhs,
         };
         let solver = BranchAndBound;
-        let start = BBStep::<4>::new();
 
-        for (i, res) in solver.try_optimize(problem, start).enumerate() {
-            if let Ok(step) = res {
-                println!(
-                    "Step {}: current_node={:?}, best_y={:?}, best_x={:?}, active_nodes={}",
-                    i + 1,
-                    step.current_node,
-                    step.best_y,
-                    step.best_x,
-                    step.active_nodes
-                );
-            }
+        for (i, step) in solver.optimize(problem, ()).enumerate() {
+            println!(
+                "Step {}: current_node={:?}, best_y={:?}, best_x={:?}, active_nodes={}",
+                i + 1,
+                step.current_node,
+                step.best_y,
+                step.best_x,
+                step.active_nodes
+            );
         }
     }
 }

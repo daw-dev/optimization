@@ -1,6 +1,6 @@
 use optimization::{
-    multivariate::dynamic_programming::{DPProblem, DPStep, DynamicProgramming},
-    optimizer::TryOptimize,
+    multivariate::dynamic_programming::{DPProblem, DynamicProgramming},
+    optimizer::Optimize,
 };
 use plotly::{Plot, Scatter};
 
@@ -39,32 +39,49 @@ fn main() {
     let w_small = [4, 5, 2, 6, 1];
     let w_max_small = 10;
 
-    let problem1 = DPProblem::<5> {
-        item_values: v_small,
-        item_weights: w_small,
-        knapsack_capacity: w_max_small,
+    let problem1 = DPProblem {
+        state_space_size: w_max_small + 1,
+        transition_function: move |item_idx: usize, capacity: usize, prev_row: &[f64]| {
+            let val = v_small[item_idx];
+            let wt = w_small[item_idx];
+            if wt <= capacity {
+                let take_val = prev_row[capacity - wt] + val;
+                let skip_val = prev_row[capacity];
+                if take_val > skip_val { take_val } else { skip_val }
+            } else {
+                prev_row[capacity]
+            }
+        },
+        backtrack_function: move |stage: usize, capacity: &mut usize, dp_table: &[Vec<f64>]| {
+            let prev_val = dp_table[stage - 1][*capacity];
+            let curr_val = dp_table[stage][*capacity];
+            if (curr_val - prev_val).abs() > 1e-7 {
+                *capacity -= w_small[stage - 1];
+                true
+            } else {
+                false
+            }
+        },
     };
 
-    let start_step1 = DPStep::<5>::new(w_max_small);
     let solver = DynamicProgramming;
 
     let mut final_step1 = None;
     let mut stages_small = Vec::new();
     let mut values_small = Vec::new();
 
-    for (k, res) in solver.try_optimize(problem1, start_step1).enumerate() {
-        if let Ok(step) = res {
-            stages_small.push(k as f64 + 1.0);
-            values_small.push(step.max_value_found);
-            final_step1 = Some(step);
-        }
+    for (k, step) in solver.optimize(problem1, ()).enumerate() {
+        stages_small.push(k as f64 + 1.0);
+        values_small.push(step.max_value_found);
+        final_step1 = Some(step);
     }
 
     let final_1 = final_step1.expect("DP Small should run");
     println!("  Optimal Value: {:.1} (Target = 12.0)", final_1.max_value_found);
+    let decisions1: [bool; 5] = final_1.optimal_decisions.unwrap();
     println!("  Chosen items (0-indexed):");
-    for i in 0..final_1.chosen_items_mask.len() {
-        if final_1.chosen_items_mask[i] {
+    for i in 0..decisions1.len() {
+        if decisions1[i] {
             println!("    Item {} (weight: {}, value: {})", i + 1, [4, 5, 2, 6, 1][i], [4.0, 3.0, 3.0, 7.0, 2.0][i]);
         }
     }
@@ -86,34 +103,51 @@ fn main() {
     let w_large: [usize; 100] = w_large_vec.try_into().unwrap();
     let w_max_large = 1965;
 
-    let problem2 = DPProblem::<100> {
-        item_values: v_large,
-        item_weights: w_large,
-        knapsack_capacity: w_max_large,
+    let problem2 = DPProblem {
+        state_space_size: w_max_large + 1,
+        transition_function: move |item_idx: usize, capacity: usize, prev_row: &[f64]| {
+            let val = v_large[item_idx];
+            let wt = w_large[item_idx];
+            if wt <= capacity {
+                let take_val = prev_row[capacity - wt] + val;
+                let skip_val = prev_row[capacity];
+                if take_val > skip_val { take_val } else { skip_val }
+            } else {
+                prev_row[capacity]
+            }
+        },
+        backtrack_function: move |stage: usize, capacity: &mut usize, dp_table: &[Vec<f64>]| {
+            let prev_val = dp_table[stage - 1][*capacity];
+            let curr_val = dp_table[stage][*capacity];
+            if (curr_val - prev_val).abs() > 1e-7 {
+                *capacity -= w_large[stage - 1];
+                true
+            } else {
+                false
+            }
+        },
     };
 
-    let start_step2 = DPStep::<100>::new(w_max_large);
     println!("Running Dynamic Programming...");
 
     let mut final_step2 = None;
     let mut stages_large = Vec::new();
     let mut values_large = Vec::new();
 
-    for (k, res) in solver.try_optimize(problem2, start_step2).enumerate() {
-        if let Ok(step) = res {
-            stages_large.push(k as f64 + 1.0);
-            values_large.push(step.max_value_found);
-            final_step2 = Some(step);
-        }
+    for (k, step) in solver.optimize(problem2, ()).enumerate() {
+        stages_large.push(k as f64 + 1.0);
+        values_large.push(step.max_value_found);
+        final_step2 = Some(step);
     }
 
     let final_2 = final_step2.expect("DP Large should run");
     println!("  Optimal Value: {:.1} (Target = 4966.0)", final_2.max_value_found);
 
+    let decisions2: [bool; 100] = final_2.optimal_decisions.unwrap();
     let mut chosen_count = 0;
     let mut total_weight = 0;
-    for i in 0..final_2.chosen_items_mask.len() {
-        if final_2.chosen_items_mask[i] {
+    for i in 0..decisions2.len() {
+        if decisions2[i] {
             chosen_count += 1;
             // Load original weights again to output exact weight sum
             let (_, original_w) = load_knapsack();
