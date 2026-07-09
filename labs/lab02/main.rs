@@ -271,7 +271,7 @@ fn main() {
 
     // Save all plots to one dashboard HTML
     optimization::helpers::save_dashboard(
-        "labs/lab2/plot.html",
+        "labs/lab02/plot.html",
         "LAB 2: Gradient Descent Methods",
         &[
             ("Exercise 1: Quadratic Function", &plot1),
@@ -281,5 +281,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab2/plot.html");
+    println!("\nSaved plots to: labs/lab02/plot.html");
 }

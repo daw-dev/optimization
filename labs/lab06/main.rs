@@ -215,7 +215,7 @@ fn main() {
     );
 
     optimization::helpers::save_dashboard(
-        "labs/lab6/plot.html",
+        "labs/lab06/plot.html",
         "LAB 6: Quadratic Programming (QP)",
         &[
             ("Exercise 1 Coordinate Convergence (n=3, m=2)", &plot1),
@@ -227,5 +227,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab6/plot.html");
+    println!("\nSaved plots to: labs/lab06/plot.html");
 }

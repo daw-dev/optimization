@@ -289,7 +289,7 @@ fn main() {
 
     // Save dashboard
     optimization::helpers::save_dashboard(
-        "labs/lab5/plot.html",
+        "labs/lab05/plot.html",
         "LAB 5: Linear Programming & Simplex",
         &[
             ("Exercise 1 Simplex Cost Trajectory", &plot1),
@@ -298,5 +298,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab5/plot.html");
+    println!("\nSaved plots to: labs/lab05/plot.html");
 }

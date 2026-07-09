@@ -233,7 +233,7 @@ fn main() {
     );
 
     optimization::helpers::save_dashboard(
-        "labs/lab7/plot.html",
+        "labs/lab07/plot.html",
         "LAB 7: Genetic Algorithms",
         &[
             ("Exercise 1: Knapsack GA Convergence", &plot1),
@@ -242,5 +242,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab7/plot.html");
+    println!("\nSaved plots to: labs/lab07/plot.html");
 }

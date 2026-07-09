@@ -165,7 +165,7 @@ pub fn main() {
 
     // Save dashboard
     optimization::helpers::save_dashboard(
-        "labs/lab3/plot.html",
+        "labs/lab03/plot.html",
         "LAB 3: Conjugate Gradient Method",
         &[
             ("Exercise 1 Convergence (n=5)", &plot1),
@@ -174,5 +174,5 @@ pub fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab3/plot.html");
+    println!("\nSaved plots to: labs/lab03/plot.html");
 }

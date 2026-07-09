@@ -109,7 +109,7 @@ fn main() {
     println!("  Newton diverges!");
 
     optimization::helpers::save_dashboard(
-        "labs/lab1/plot.html",
+        "labs/lab01/plot.html",
         "LAB 1: Line Search Methods",
         &[
             ("Exercise 1 Test Function", &plot_ex1),
@@ -117,5 +117,5 @@ fn main() {
         ],
     )
     .unwrap();
-    println!("\nSaved plots to: labs/lab1/plot.html");
+    println!("\nSaved plots to: labs/lab01/plot.html");
 }

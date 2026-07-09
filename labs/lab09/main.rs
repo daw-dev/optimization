@@ -146,7 +146,7 @@ fn main() {
     );
 
     optimization::helpers::save_dashboard(
-        "labs/lab9/plot.html",
+        "labs/lab09/plot.html",
         "LAB 9: Branch & Bound Solver",
         &[
             ("Exercise 1 MILP Convergence", &plot1),
@@ -155,5 +155,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab9/plot.html");
+    println!("\nSaved plots to: labs/lab09/plot.html");
 }

@@ -193,7 +193,7 @@ fn main() {
     );
 
     optimization::helpers::save_dashboard(
-        "labs/lab8/plot.html",
+        "labs/lab08/plot.html",
         "LAB 8: Simulated Annealing for TSP",
         &[
             ("USA Capitals SA Convergence Trajectory", &plot1),
@@ -202,5 +202,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab8/plot.html");
+    println!("\nSaved plots to: labs/lab08/plot.html");
 }

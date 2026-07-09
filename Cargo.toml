@@ -11,40 +11,40 @@ plotly = "0.14.1"
 itertools = "0.15.0"
 
 [[example]]
-name = "lab1"
-path = "labs/lab1/main.rs"
+name = "lab01"
+path = "labs/lab01/main.rs"
 
 [[example]]
-name = "lab2"
-path = "labs/lab2/main.rs"
+name = "lab02"
+path = "labs/lab02/main.rs"
 
 [[example]]
-name = "lab3"
-path = "labs/lab3/main.rs"
+name = "lab03"
+path = "labs/lab03/main.rs"
 
 [[example]]
-name = "lab4"
-path = "labs/lab4/main.rs"
+name = "lab04"
+path = "labs/lab04/main.rs"
 
 [[example]]
-name = "lab5"
-path = "labs/lab5/main.rs"
+name = "lab05"
+path = "labs/lab05/main.rs"
 
 [[example]]
-name = "lab6"
-path = "labs/lab6/main.rs"
+name = "lab06"
+path = "labs/lab06/main.rs"
 
 [[example]]
-name = "lab7"
-path = "labs/lab7/main.rs"
+name = "lab07"
+path = "labs/lab07/main.rs"
 
 [[example]]
-name = "lab8"
-path = "labs/lab8/main.rs"
+name = "lab08"
+path = "labs/lab08/main.rs"
 
 [[example]]
-name = "lab9"
-path = "labs/lab9/main.rs"
+name = "lab09"
+path = "labs/lab09/main.rs"
 
 [[example]]
 name = "lab10"

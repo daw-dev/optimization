@@ -201,7 +201,7 @@ fn main() {
 
     // Save dashboard
     optimization::helpers::save_dashboard(
-        "labs/lab4/plot.html",
+        "labs/lab04/plot.html",
         "LAB 4: Newton & Quasi-Newton Methods",
         &[
             ("Exercise 1 Newton-Raphson Optimization", &plot1),
@@ -210,5 +210,5 @@ fn main() {
     )
     .unwrap();
 
-    println!("\nSaved plots to: labs/lab4/plot.html");
+    println!("\nSaved plots to: labs/lab04/plot.html");
 }

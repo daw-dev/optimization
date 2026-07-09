@@ -8,7 +8,7 @@
 - `cargo fmt` — format the workspace.
 - `cargo clippy` — run the Rust linter.
 - `cargo build --examples` — builds the `labs/` examples declared in `Cargo.toml`.
-- `cargo run --example lab1` / `lab2` / `lab3` / `lab4` — run an individual lab example.
+- `cargo run --example lab01` / `lab02` / `lab03` / `lab04` — run an individual lab example.
 
 ## Architecture
 
@@ -27,4 +27,4 @@
 - Reuse the `Function` trait instead of hard-coding closures; most algorithms accept any `Function` implementation.
 - For multivariate code, use the `Column` / `Row` / `Value` wrappers and the overloaded matrix operators (`^`, `+`, `-`, `*`) already used in `quadratic/`.
 - Line searches and multi-stage methods are commonly built with `Optimizer::chain(...)`; keep new composition logic consistent with that pattern.
-- `labs/lab2` currently references `helpers::Average`, which is commented out in `src/helpers.rs`, so that example is incomplete as-is.
+- `labs/lab02` currently references `helpers::Average`, which is commented out in `src/helpers.rs`, so that example is incomplete as-is.
