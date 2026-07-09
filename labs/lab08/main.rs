@@ -203,4 +203,5 @@ fn main() {
     .unwrap();
 
     println!("\nSaved plots to: labs/lab08/plot.html");
+    optimization::helpers::prompt_and_open_dashboard("labs/lab08/plot.html");
 }

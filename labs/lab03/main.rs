@@ -175,4 +175,5 @@ pub fn main() {
     .unwrap();
 
     println!("\nSaved plots to: labs/lab03/plot.html");
+    optimization::helpers::prompt_and_open_dashboard("labs/lab03/plot.html");
 }

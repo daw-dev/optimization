@@ -118,4 +118,5 @@ fn main() {
     )
     .unwrap();
     println!("\nSaved plots to: labs/lab01/plot.html");
+    optimization::helpers::prompt_and_open_dashboard("labs/lab01/plot.html");
 }
