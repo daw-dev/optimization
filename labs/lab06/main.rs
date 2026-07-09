@@ -2,11 +2,12 @@
 #![allow(incomplete_features)]
 
 use optimization::{
-    helpers::{Iterations, Precision},
+    helpers::Precision,
     linalg::{Column, Matrix},
     multivariate::{
         active_set::{ActiveSetGuess, ActiveSetMethod, InequalityConstrainedQP},
         constrained::{EqualityConstrainedQP, NewtonRaphsonQP},
+        sqp::{EqualityConstrainedProblem, LocalSqpMethod},
     },
     optimizer::TryOptimize,
 };
@@ -97,86 +98,60 @@ fn main() {
     // Minimize f(x) = 1.5 * x2 - 2 * x1^2 - x1^3 + x1^4
     // Subject to: x1^2 + x2^2 = 3
 
-    let mut x_k = [1.0, 5.0];
-    let mut lambda_k = 0.0;
-    let epsilon = 1e-6;
-    let max_iter = 400;
+    let problem2 = EqualityConstrainedProblem {
+        f: |[x1, x2]: [f64; 2]| {
+            1.5 * x2 - 2.0 * x1.powi(2) - x1.powi(3) + x1.powi(4)
+        },
+        h: |[x1, x2]: [f64; 2]| {
+            [x1.powi(2) + x2.powi(2) - 3.0]
+        },
+    };
 
-    let mut path_ex2_x1 = vec![x_k[0]];
-    let mut path_ex2_x2 = vec![x_k[1]];
+    let start_guess2 = [1.0, 5.0];
 
-    println!("Starting Local SQP from x0 = {:?}, lambda0 = {}", x_k, lambda_k);
+    let solver2 = LocalSqpMethod::new(Precision(1e-6));
+
+    let mut path_ex2_x1 = vec![start_guess2[0]];
+    let mut path_ex2_x2 = vec![start_guess2[1]];
+
+    println!("Starting Local SQP from x0 = {:?}", start_guess2);
     let mut k = 0;
-    while k < max_iter {
-        let x1: f64 = x_k[0];
-        let x2: f64 = x_k[1];
+    let mut final_guess2 = None;
 
-        // 1. Calculate gradient of objective f: g = [ df/dx1, df/dx2 ]
-        let g_ex2 = [
-            -4.0 * x1 - 3.0 * x1.powi(2) + 4.0 * x1.powi(3),
-            1.5
-        ];
+    for res in solver2.try_optimize(problem2, start_guess2) {
+        match res {
+            Ok(state) => {
+                let x = state.x;
+                let lambda = state.lambda;
+                
+                // For stop crit (||p||), we print the difference from the previous point
+                let prev_x1 = *path_ex2_x1.last().unwrap();
+                let prev_x2 = *path_ex2_x2.last().unwrap();
+                let p_norm = ((x[0] - prev_x1).powi(2) + (x[1] - prev_x2).powi(2)).sqrt();
 
-        // 2. Calculate Hessian of Lagrangian: Qm = [ [d^2 L/dx1^2, 0], [0, d^2 L/dx2^2] ]
-        let qm_11 = -4.0 - 6.0 * x1 + 12.0 * x1.powi(2) + 2.0 * lambda_k;
-        let qm_22 = 2.0 * lambda_k;
-        let qm = Matrix([
-            [qm_11, 0.0],
-            [0.0, qm_22]
-        ]);
-
-        // 3. Calculate constraint Jacobian: Am = [2*x1, 2*x2]
-        let am = Matrix([
-            [2.0 * x1, 2.0 * x2]
-        ]);
-
-        // 4. Constraint value
-        let h_val = x1.powi(2) + x2.powi(2) - 3.0;
-
-        // Solve QP subproblem using library's NewtonRaphsonQP
-        let subproblem = EqualityConstrainedQP {
-            q: qm,
-            c: Column::new_column(g_ex2),
-            a: am,
-            b: Column::new_column([-h_val]), // Ax = b constraint is Am * p = -h
-        };
-
-        let sub_solver = NewtonRaphsonQP::<2, 1, Iterations>::new(Iterations(1));
-        let mut sub_result = None;
-        for res in sub_solver.try_optimize(subproblem, Column::zeros()) {
-            if let Ok(guess) = res {
-                sub_result = Some(guess);
+                path_ex2_x1.push(x[0]);
+                path_ex2_x2.push(x[1]);
+                
+                println!(
+                    "  Step {}: x = [{:.5}, {:.5}], lambda = {:.5}, stop_crit (||p||) = {:.3e}",
+                    k + 1, x[0], x[1], lambda[0], p_norm
+                );
+                
+                k += 1;
+                final_guess2 = Some(state);
+            }
+            Err(err) => {
+                println!("  Error: {}", err);
+                break;
             }
         }
-
-        let sub_step = sub_result.expect("Subproblem should be solved");
-        let p = sub_step.x.into_column();
-        let lambda_new = sub_step.lambda.into_column()[0];
-
-        let p_norm = (p[0]*p[0] + p[1]*p[1]).sqrt();
-        
-        x_k[0] += p[0];
-        x_k[1] += p[1];
-        lambda_k = lambda_new;
-
-        path_ex2_x1.push(x_k[0]);
-        path_ex2_x2.push(x_k[1]);
-
-        println!(
-            "  Step {}: x = [{:.5}, {:.5}], lambda = {:.5}, stop_crit (||p||) = {:.3e}",
-            k + 1, x_k[0], x_k[1], lambda_k, p_norm
-        );
-
-        if p_norm <= epsilon {
-            println!("Local SQP converged in {} iterations.", k + 1);
-            break;
-        }
-        k += 1;
     }
 
+    let sol2 = final_guess2.expect("LocalSqpMethod should converge");
+    println!("Local SQP converged in {} iterations.", k);
     println!("\nExercise 2 Results:");
-    println!("  Optimal Solution x*:     {:.5?}", x_k);
-    println!("  Lagrange Multiplier:     {:.5}", lambda_k);
+    println!("  Optimal Solution x*:     [{:.5}, {:.5}]", sol2.x[0], sol2.x[1]);
+    println!("  Lagrange Multiplier:     {:.5}", sol2.lambda[0]);
 
 
     // -------------------------------------------------------------------------

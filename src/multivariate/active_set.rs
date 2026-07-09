@@ -86,11 +86,11 @@ impl<const N: usize, const M: usize>
         problem: InequalityConstrainedQP<N, M>,
         starting_guess: ActiveSetGuess<N, M>,
     ) -> impl Iterator<Item = Result<ActiveSetGuess<N, M>, Self::Error>> {
-        let mut current = starting_guess;
+        let mut current = starting_guess.clone();
         let precision = self.stopping_criterion.0;
         let mut converged = false;
 
-        std::iter::from_fn(move || {
+        std::iter::once(Ok(starting_guess)).chain(std::iter::from_fn(move || {
             if converged {
                 return None;
             }
@@ -151,7 +151,7 @@ impl<const N: usize, const M: usize>
 
                 if min_lambda >= -1e-9 {
                     converged = true;
-                    return Some(Ok(current.clone()));
+                    return None;
                 } else {
                     current.w.remove(j_leave_idx);
                 }
@@ -194,7 +194,7 @@ impl<const N: usize, const M: usize>
             }
 
             Some(Ok(current.clone()))
-        })
+        }))
     }
 }
 
@@ -209,12 +209,12 @@ impl<const N: usize, const M: usize>
         problem: InequalityConstrainedQP<N, M>,
         starting_guess: ActiveSetGuess<N, M>,
     ) -> impl Iterator<Item = Result<ActiveSetGuess<N, M>, Self::Error>> {
-        let mut current = starting_guess;
+        let mut current = starting_guess.clone();
         let limit = self.stopping_criterion.0;
         let mut count = 0;
         let mut converged = false;
 
-        std::iter::from_fn(move || {
+        std::iter::once(Ok(starting_guess)).chain(std::iter::from_fn(move || {
             if converged || count >= limit {
                 return None;
             }
@@ -274,7 +274,7 @@ impl<const N: usize, const M: usize>
 
                 if min_lambda >= -1e-9 {
                     converged = true;
-                    return Some(Ok(current.clone()));
+                    return None;
                 } else {
                     current.w.remove(j_leave_idx);
                 }
@@ -317,6 +317,6 @@ impl<const N: usize, const M: usize>
 
             count += 1;
             Some(Ok(current.clone()))
-        })
+        }))
     }
 }

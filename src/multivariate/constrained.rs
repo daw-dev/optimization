@@ -39,11 +39,11 @@ where
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
-        let mut current = QPStep::from(starting_guess);
+        let mut current = QPStep::from(starting_guess.clone());
         let limit = self.stopping_criterion.0;
         let mut count = 0;
 
-        std::iter::from_fn(move || {
+        std::iter::once(Ok(QPStep::from(starting_guess))).chain(std::iter::from_fn(move || {
             if count >= limit {
                 return None;
             }
@@ -78,7 +78,7 @@ where
 
             count += 1;
             Some(Ok(current.clone()))
-        })
+        }))
     }
 }
 
@@ -95,15 +95,10 @@ where
         problem: EqualityConstrainedQP<N, M>,
         starting_guess: Column<N, f64>,
     ) -> impl Iterator<Item = Result<QPStep<N, M>, Self::Error>> {
-        let mut current = QPStep::from(starting_guess);
+        let mut current = QPStep::from(starting_guess.clone());
         let precision = self.stopping_criterion.0;
-        let mut opt = false;
 
-        std::iter::from_fn(move || {
-            if opt {
-                return None;
-            }
-
+        std::iter::once(Ok(QPStep::from(starting_guess))).chain(std::iter::from_fn(move || {
             // 1. Construct KKT Matrix H_L (Hessian of the Lagrangian)
             // [ Q   A^T ]
             // [ A    0  ]
@@ -132,16 +127,14 @@ where
             // 4. Tolerance check for convergence
             let p_norm = (p.transpose() * p).into_value().sqrt();
             if p_norm <= precision {
-                opt = true;
-                current.lambda = lambda_new;
-                return Some(Ok(current.clone()));
+                return None;
             }
 
             current.x += p;
             current.lambda = lambda_new;
 
             Some(Ok(current.clone()))
-        })
+        }))
     }
 }
 
